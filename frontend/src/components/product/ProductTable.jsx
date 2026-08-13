@@ -6,8 +6,8 @@ const ProductTable = forwardRef(({ products = [], loading, onEdit, onDelete }, r
   if (loading) {
     return (
 
-      
-      <div  className="bg-white rounded-lg shadow p-10 text-center">
+
+      <div className="bg-white rounded-lg shadow p-10 text-center">
         Loading Products...
       </div>
     );
@@ -125,7 +125,7 @@ const ProductTable = forwardRef(({ products = [], loading, onEdit, onDelete }, r
                   </td>
 
                   {/* SELLING */}
-                  <td className="border p-2 text-green-600 font-semibold">
+                  <td className="border p-1 text-green-600 font-semibold">
                     ₹{product.sellingPrice}
                   </td>
 
@@ -155,29 +155,23 @@ const ProductTable = forwardRef(({ products = [], loading, onEdit, onDelete }, r
                   </div> */}
 
                   {/* STOCK */}
-                  <td className="border p-2">
-
+                  <td className="border px-5">
                     {product.stock === 0 ? (
-
-                      <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm">
+                      <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm whitespace-nowrap">
                         🔴 Out of Stock
                       </span>
-
                     ) : product.stock <= 5 ? (
-
-                      <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm">
+                      <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm whitespace-nowrap">
                         🟡 Low Stock ({product.stock})
                       </span>
-
                     ) : (
-
-                      <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm">
+                      <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm whitespace-nowrap">
                         🟢 In Stock ({product.stock})
                       </span>
-
                     )}
-
                   </td>
+
+
                   {/* ACTIONS */}
                   <td className="border p-2">
                     <div className="flex justify-center gap-2">

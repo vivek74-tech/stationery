@@ -10,12 +10,13 @@ import Suppliers from "../pages/suppliers/Suppliers.jsx";
 import Inventory from "../pages/inventory/Inventory.jsx";
 import Sales from "../pages/sales/Sales.jsx";
 import Reports from "../pages/reports/Reports.jsx";
-
+import Register from "../pages/auth/Register";
 function AppRoutes() {
   return (
     <Routes>
       {/* Public */}
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
       {/* Dashboard */}
       <Route

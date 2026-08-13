@@ -1,37 +1,34 @@
 import { useState } from "react";
-import { loginUser } from "../../services/auth.service";
+import { registerUser } from "../../services/auth.service";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 
-function Login() {
-
+function Register() {
+  const [fullName, setFullname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const data = await loginUser({
+      const data = await registerUser({
+        fullName,
         email,
         password,
       });
 
+      console.log("Register Data:", data);
 
-
-      login(data.data);
-      console.log("Login Data:", data);
-      console.log("Actual Auth Data:", data.data);
-      navigate("/");
+      // Register ke baad login page par bhejo
+      navigate("/login");
     } catch (error) {
-      console.log(error.response?.data);
+      console.log("Register Error:", error.response?.data);
     }
   };
-  return (
 
+  return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
 
       <form
@@ -40,8 +37,17 @@ function Login() {
       >
 
         <h2 className="text-3xl font-bold text-center mb-6">
-          ERP Login
+          ERP Register
         </h2>
+
+        <input
+          type="text"
+          placeholder="Full Name"
+          className="w-full border p-3 rounded mb-4"
+          value={fullName}
+          onChange={(e) => setFullname(e.target.value)}
+          required
+        />
 
         <input
           type="email"
@@ -49,6 +55,7 @@ function Login() {
           className="w-full border p-3 rounded mb-4"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
         />
 
         <input
@@ -57,29 +64,31 @@ function Login() {
           className="w-full border p-3 rounded mb-6"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          required
         />
 
         <button
+          type="submit"
           className="bg-blue-600 text-white w-full py-3 rounded hover:bg-blue-700"
         >
-          Login
+          Register
         </button>
+
         <p className="text-center mt-4 text-gray-600">
-          Don't have an account?{" "}
+          Already have an account?{" "}
           <button
             type="button"
-            onClick={() => navigate("/register")}
+            onClick={() => navigate("/login")}
             className="text-blue-600 hover:underline"
           >
-            Register
+            Login
           </button>
         </p>
 
       </form>
 
     </div>
-
   );
 }
 
-export default Login;
+export default Register;
