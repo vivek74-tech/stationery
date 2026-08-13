@@ -7,11 +7,13 @@ import AppRoutes from "./routes/AppRoutes";
 function App() {
   const location = useLocation();
 
-  const isLoginPage = location.pathname === "/login";
+  const isAuthPage =
+    location.pathname === "/login" ||
+    location.pathname === "/register";
 
   return (
     <>
-      {isLoginPage ? (
+      {isAuthPage ? (
         <AppRoutes />
       ) : (
         <div className="flex">
