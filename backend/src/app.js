@@ -18,12 +18,10 @@ const app = express();
    Middlewares
 ========================== */
 
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: "https://stationery-r217.onrender.com",
+  credentials: true
+}));
 
 app.use(express.json());
 
@@ -49,7 +47,7 @@ app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/suppliers", supplierRouter);
 
 app.use("/api/v1/products", productRouter);
- 
+
 app.use("/api/v1/inventory", inventoryRouter);
 
 app.use("/api/v1/sales", saleRouter);
