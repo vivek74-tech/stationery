@@ -49,11 +49,11 @@ function Products() {
     try {
       const response = await getSuppliers(1, 1000);
 
-      console.log(response);
+      // console.log(response);
 
       setSuppliers(response.data.suppliers || []);
-      console.log("Suppliers:", response);
-      console.log("response.data:", response.data);
+      // console.log("Suppliers:", response);
+      // console.log("response.data:", response.data);
 
     } catch (error) {
       console.error(error);
@@ -65,7 +65,7 @@ function Products() {
 
   const fetchProducts = async () => {
     try {
-      console.log("fetchProducts called");
+      // console.log("fetchProducts called");
       setLoading(true);
 
       const res = await getProducts({
@@ -77,7 +77,7 @@ function Products() {
         sort,
       });
 
-      console.log(res.data);
+      // console.log(res.data);
 
       setProducts(res.data.data.products);
 
@@ -191,10 +191,10 @@ function Products() {
     }
   };
 
-  console.log("Products State:", products);
-  console.log("View:", view);
-  console.log("Loading:", loading);
-  console.log("Products Length:", products.length);
+  // console.log("Products State:", products);
+  // console.log("View:", view);
+  // console.log("Loading:", loading);
+  // console.log("Products Length:", products.length);
   return (
     <div className="p-6">
 

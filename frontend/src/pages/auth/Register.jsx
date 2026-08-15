@@ -6,25 +6,28 @@ function Register() {
   const [fullName, setFullname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const [role, setRole] = useState("employee");
+  const [isLoading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setLoading(!isLoading);
     try {
       const data = await registerUser({
         fullName,
         email,
         password,
+        role,
       });
 
       console.log("Register Data:", data);
 
-      // Register ke baad login page par bhejo
       navigate("/login");
     } catch (error) {
       console.log("Register Error:", error.response?.data);
+    } finally {
+      setLoading(!isLoading);
     }
   };
 
@@ -35,7 +38,6 @@ function Register() {
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-lg shadow-md w-96"
       >
-
         <h2 className="text-3xl font-bold text-center mb-6">
           ERP Register
         </h2>
@@ -61,21 +63,32 @@ function Register() {
         <input
           type="password"
           placeholder="Password"
-          className="w-full border p-3 rounded mb-6"
+          className="w-full border p-3 rounded mb-4"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
 
+        {/* Role */}
+        <select
+          className="w-full border p-3 rounded mb-6"
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+        >
+          <option value="employee">Employee</option>
+          <option value="admin">Admin</option>
+        </select>
+
         <button
           type="submit"
           className="bg-blue-600 text-white w-full py-3 rounded hover:bg-blue-700"
         >
-          Register
+          {isLoading?"Loading...":"Register"}
         </button>
 
         <p className="text-center mt-4 text-gray-600">
           Already have an account?{" "}
+
           <button
             type="button"
             onClick={() => navigate("/login")}

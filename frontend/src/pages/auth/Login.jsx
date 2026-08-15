@@ -2,36 +2,45 @@ import { useState } from "react";
 import { loginUser } from "../../services/auth.service";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import toast from "react-hot-toast";
 
 function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const [isLoading , setLoading]=useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setLoading(!isLoading);
     try {
       const data = await loginUser({
         email,
         password,
       });
 
-
-
       login(data.data);
-      console.log("Login Data:", data);
-      console.log("Actual Auth Data:", data.data);
+
+      // console.log("Actual Auth Data:", data.data.message);
+
+      toast.success(data.message);
+
       navigate("/");
+
     } catch (error) {
       console.log(error.response?.data);
+
+      toast.error(
+        error.response?.data?.message || "Login failed"
+      );
+    }  finally{
+      setLoading(!isLoading);
     }
   };
-  return (
 
+  return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
 
       <form
@@ -49,6 +58,7 @@ function Login() {
           className="w-full border p-3 rounded mb-4"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
         />
 
         <input
@@ -57,15 +67,27 @@ function Login() {
           className="w-full border p-3 rounded mb-6"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          required
         />
 
-        <button
+        
+       <button
+          type="submit"
           className="bg-blue-600 text-white w-full py-3 rounded hover:bg-blue-700"
-        >
-          Login
+        >{
+         isLoading?'Loading...':" Login"
+        }
+          
         </button>
+
+
+        
+
+       
+
         <p className="text-center mt-4 text-gray-600">
           Don't have an account?{" "}
+
           <button
             type="button"
             onClick={() => navigate("/register")}
@@ -78,7 +100,6 @@ function Login() {
       </form>
 
     </div>
-
   );
 }
 

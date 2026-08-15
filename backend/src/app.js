@@ -15,11 +15,11 @@ import reportRouter from "./routes/report.routes.js";
 const app = express();
 
 /* ==========================
-   Middlewares
+   Middlewares https://stationery-r217.onrender.com
 ========================== */
 
 app.use(cors({
-  origin: "https://stationery-r217.onrender.com",
+  origin: "http://localhost:5173",
   credentials: true
 }));
 

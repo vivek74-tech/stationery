@@ -33,9 +33,9 @@ function Dashboard() {
       const statsRes = await getDashboardStats();
       const salesRes = await getMonthlySales();
 
-      console.log("salesRes =", salesRes);
-      console.log("salesRes.data =", salesRes.data);
-      console.log("Array?", Array.isArray(salesRes.data));
+      // console.log("salesRes =", salesRes);
+      // console.log("salesRes.data =", salesRes.data);
+      // console.log("Array?", Array.isArray(salesRes.data));
 
       // console.log("Dashboard:", statsRes);
       // console.log("Monthly Sales:", salesRes);

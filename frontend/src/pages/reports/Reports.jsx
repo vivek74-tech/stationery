@@ -18,8 +18,8 @@ function Reports() {
       const salesRes = await getSalesReport();
       const inventoryRes = await getInventoryReport();
 
-      console.log("Sales Response:", salesRes);
-      console.log("Inventory Response:", inventoryRes);
+      // console.log("Sales Response:", salesRes);
+      // console.log("Inventory Response:", inventoryRes);
 
       // ✅ Correct
       setSalesReport(salesRes.data?.sales || []);

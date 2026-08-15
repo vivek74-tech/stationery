@@ -24,8 +24,8 @@ function Inventory() {
 
     const res = await getInventory();
 
-    console.log("Inventory Response:", res);
-    console.log("Inventory Array:", res.data.inventory);
+    // console.log("Inventory Response:", res);
+    // console.log("Inventory Array:", res.data.inventory);
 
     setInventory(res.data.inventory || []);
 
@@ -46,8 +46,8 @@ function Inventory() {
     try {
       const res = await api.get("/products?limit=1000");
 
-      console.log("Products Response:", res.data);
-      console.log("Products:", res.data?.data?.products);
+      // console.log("Products Response:", res.data);
+      // console.log("Products:", res.data?.data?.products);
 
       setProducts(res.data?.data?.products || []);
     } catch (error) {

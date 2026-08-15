@@ -35,10 +35,10 @@ function Suppliers() {
 
       const res = await getSuppliers(page, limit, search);
 
-      console.log("Suppliers Response:", res);
-      console.log(res);
-      console.log(res.data);
-      console.log(res.data.suppliers);
+      // console.log("Suppliers Response:", res);
+      // console.log(res);
+      // console.log(res.data);
+      // console.log(res.data.suppliers);
       setSuppliers(res.data?.suppliers || []);
       setTotalPages(res.data?.totalPages || 1);
 
