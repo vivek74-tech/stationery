@@ -1,9 +1,11 @@
+
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+function ProtectedRoute({ children, allowedRoles }) {
+  const { user, isAuthenticated, loading } = useAuth();
 
+  // Auth state load hone ka wait
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -12,8 +14,14 @@ function ProtectedRoute({ children }) {
     );
   }
 
+  // Login nahi hai
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Role allowed nahi hai
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+    return <Navigate to="/" replace />;
   }
 
   return children;

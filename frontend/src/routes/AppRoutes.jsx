@@ -1,3 +1,4 @@
+
 import { Routes, Route } from "react-router-dom";
 
 import ProtectedRoute from "./ProtectedRoute.jsx";
@@ -10,85 +11,104 @@ import Suppliers from "../pages/suppliers/Suppliers.jsx";
 import Inventory from "../pages/inventory/Inventory.jsx";
 import Sales from "../pages/sales/Sales.jsx";
 import Reports from "../pages/reports/Reports.jsx";
-import Register from "../pages/auth/Register";
+import Register from "../pages/auth/Register.jsx";
+
 function AppRoutes() {
   return (
     <Routes>
-      {/* Public */}
+
+      {/* ================= PUBLIC ================= */}
+
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* Dashboard */}
+
+      {/* ================= DASHBOARD ================= */}
+
       <Route
         path="/"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin", "employee"]}>
             <Dashboard />
           </ProtectedRoute>
         }
       />
 
-      {/* Categories */}
-      <Route
-        path="/categories"
-        element={
-          <ProtectedRoute>
-            <Categories />
-          </ProtectedRoute>
-        }
-      />
 
-      {/* Products */}
+      {/* ================= PRODUCTS ================= */}
+
       <Route
         path="/products"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin", "employee"]}>
             <Products />
           </ProtectedRoute>
         }
       />
 
-      {/* Suppliers */}
+
+      {/* ================= CATEGORIES ================= */}
+
+      <Route
+        path="/categories"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <Categories />
+          </ProtectedRoute>
+        }
+      />
+
+
+      {/* ================= SUPPLIERS ================= */}
+
       <Route
         path="/suppliers"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin"]}>
             <Suppliers />
           </ProtectedRoute>
         }
       />
 
-      {/* Inventory */}
+
+      {/* ================= INVENTORY ================= */}
+
       <Route
         path="/inventory"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin", "employee"]}>
             <Inventory />
           </ProtectedRoute>
         }
       />
 
-      {/* Sales */}
+
+      {/* ================= SALES ================= */}
+
       <Route
         path="/sales"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin", "employee"]}>
             <Sales />
           </ProtectedRoute>
         }
       />
 
-      {/* Reports */}
+
+      {/* ================= REPORTS ================= */}
+
       <Route
         path="/reports"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin"]}>
             <Reports />
           </ProtectedRoute>
         }
       />
+
     </Routes>
   );
 }
 
 export default AppRoutes;
+
