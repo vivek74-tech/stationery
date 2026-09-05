@@ -35,7 +35,7 @@ function Sidebar() {
     {
       name: "Sales",
       path: "/sales",
-      roles: ["admin", "employee"],
+      roles: ["admin"],
     },
     {
       name: "Reports",
