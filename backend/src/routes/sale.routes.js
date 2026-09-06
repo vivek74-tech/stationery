@@ -1,13 +1,13 @@
 import { Router } from "express";
 
 import {
-    createSale,
-    getAllSales,
-    getSaleById,
-    getSalesSummary,
-    getTopSellingProducts,
-    downloadInvoice,
-    deleteSale
+  createSale,
+  getAllSales,
+  getSaleById,
+  getSalesSummary,
+  getTopSellingProducts,
+  downloadInvoice,
+  deleteSale,
 } from "../controllers/sale.controller.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -15,60 +15,63 @@ import { verifyAdmin } from "../middlewares/admin.middleware.js";
 
 const router = Router();
 
-// Create Sale
+// ================= CREATE SALE =================
+// Admin + Employee
 router.post(
-    "/",
-    verifyJWT,
-    verifyAdmin,
-    createSale
+  "/",
+  verifyJWT,
+  createSale
 );
 
-// Get All Sales
+// ================= GET ALL SALES =================
+// Admin + Employee
 router.get(
-    "/",
-    verifyJWT,
-    verifyAdmin,
-    getAllSales
+  "/",
+  verifyJWT,
+  getAllSales
 );
 
-// Dashboard Summary
+// ================= DASHBOARD SUMMARY =================
+// Admin only
 router.get(
-    "/summary/dashboard",
-    verifyJWT,
-    verifyAdmin,
-    getSalesSummary
+  "/summary/dashboard",
+  verifyJWT,
+  verifyAdmin,
+  getSalesSummary
 );
 
-// Top Selling Products
+// ================= TOP SELLING PRODUCTS =================
+// Admin only
 router.get(
-    "/analytics/top-products",
-    verifyJWT,
-    verifyAdmin,
-    getTopSellingProducts
+  "/analytics/top-products",
+  verifyJWT,
+  verifyAdmin,
+  getTopSellingProducts
 );
 
-// Download Invoice
+// ================= DOWNLOAD INVOICE =================
+// Admin + Employee
 router.get(
-    "/:id/invoice",
-    verifyJWT,
-    verifyAdmin,
-    downloadInvoice
+  "/:id/invoice",
+  verifyJWT,
+  downloadInvoice
 );
 
-// Get Sale By Id
+// ================= GET SALE BY ID =================
+// Admin + Employee
 router.get(
-    "/:id",
-    verifyJWT,
-    verifyAdmin,
-    getSaleById
+  "/:id",
+  verifyJWT,
+  getSaleById
 );
 
-// Delete Sale
+// ================= DELETE SALE =================
+// Admin only
 router.delete(
-    "/:id",
-    verifyJWT,
-    verifyAdmin,
-    deleteSale
+  "/:id",
+  verifyJWT,
+  verifyAdmin,
+  deleteSale
 );
 
 export default router;

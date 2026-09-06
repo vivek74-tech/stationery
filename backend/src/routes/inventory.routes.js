@@ -10,9 +10,7 @@ import {
   getInventoryByProduct,
 } from "../controllers/inventory.controller.js";
 
-
 const router = Router();
-
 
 /*
 =================================
@@ -20,6 +18,7 @@ const router = Router();
 =================================
 */
 
+// Admin + Employee
 router.get(
   "/history",
   verifyJWT,
@@ -33,10 +32,10 @@ router.get(
 =================================
 */
 
+// Admin + Employee
 router.post(
   "/stock-in",
   verifyJWT,
-  verifyAdmin,
   stockIn
 );
 
@@ -47,10 +46,10 @@ router.post(
 =================================
 */
 
+// Admin + Employee
 router.post(
   "/stock-out",
   verifyJWT,
-  verifyAdmin,
   stockOut
 );
 
@@ -61,12 +60,11 @@ router.post(
 =================================
 */
 
+// Admin + Employee
 router.get(
   "/product/:productId",
   verifyJWT,
-  verifyAdmin,
   getInventoryByProduct
 );
-
 
 export default router;

@@ -1,10 +1,11 @@
 import { Router } from "express";
+
 import {
-    createSupplier,
-    getAllSuppliers,
-    getSupplierById,
-    updateSupplier,
-    deleteSupplier
+  createSupplier,
+  getAllSuppliers,
+  getSupplierById,
+  updateSupplier,
+  deleteSupplier,
 } from "../controllers/supplier.controller.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -12,14 +13,49 @@ import { verifyAdmin } from "../middlewares/admin.middleware.js";
 
 const router = Router();
 
-router.post("/", verifyJWT, verifyAdmin, createSupplier);
+// ================= CREATE SUPPLIER =================
+// Admin only
+router.post(
+  "/",
+  verifyJWT,
+  verifyAdmin,
+  createSupplier
+);
 
-router.get("/", verifyJWT, getAllSuppliers);
+// ================= GET ALL SUPPLIERS =================
+// Admin only
+router.get(
+  "/",
+  verifyJWT,
+  verifyAdmin,
+  getAllSuppliers
+);
 
-router.get("/:id", verifyJWT, getSupplierById);
+// ================= GET SUPPLIER BY ID =================
+// Admin only
+router.get(
+  "/:id",
+  verifyJWT,
+  verifyAdmin,
+  getSupplierById
+);
 
-router.patch("/:id", verifyJWT, verifyAdmin, updateSupplier);
+// ================= UPDATE SUPPLIER =================
+// Admin only
+router.patch(
+  "/:id",
+  verifyJWT,
+  verifyAdmin,
+  updateSupplier
+);
 
-router.delete("/:id", verifyJWT, verifyAdmin, deleteSupplier);
+// ================= DELETE SUPPLIER =================
+// Admin only
+router.delete(
+  "/:id",
+  verifyJWT,
+  verifyAdmin,
+  deleteSupplier
+);
 
 export default router;

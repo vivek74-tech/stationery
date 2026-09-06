@@ -1,26 +1,41 @@
-
 import { Routes, Route } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 
 import ProtectedRoute from "./ProtectedRoute.jsx";
 
-import Dashboard from "../pages/dashboard/Dashboard.jsx";
+// Auth
 import Login from "../pages/auth/Login.jsx";
+import Register from "../pages/auth/Register.jsx";
+
+// Dashboards
+import Dashboard from "../pages/dashboard/Dashboard.jsx";
+import EmployeeDashboard from "../pages/dashboard/EmployeeDashboard.jsx";
+
+// Pages
 import Categories from "../pages/categories/Categories.jsx";
 import Products from "../pages/products/Products.jsx";
 import Suppliers from "../pages/suppliers/Suppliers.jsx";
 import Inventory from "../pages/inventory/Inventory.jsx";
 import Sales from "../pages/sales/Sales.jsx";
 import Reports from "../pages/reports/Reports.jsx";
-import Register from "../pages/auth/Register.jsx";
 
 function AppRoutes() {
+  const { user } = useAuth();
+
   return (
     <Routes>
 
-      {/* ================= PUBLIC ================= */}
+      {/* ================= PUBLIC ROUTES ================= */}
 
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route
+        path="/login"
+        element={<Login />}
+      />
+
+      <Route
+        path="/register"
+        element={<Register />}
+      />
 
 
       {/* ================= DASHBOARD ================= */}
@@ -29,7 +44,11 @@ function AppRoutes() {
         path="/"
         element={
           <ProtectedRoute allowedRoles={["admin", "employee"]}>
-            <Dashboard />
+            {user?.role === "admin" ? (
+              <Dashboard />
+            ) : (
+              <EmployeeDashboard />
+            )}
           </ProtectedRoute>
         }
       />
@@ -88,7 +107,7 @@ function AppRoutes() {
       <Route
         path="/sales"
         element={
-          <ProtectedRoute allowedRoles={["admin"]}>
+          <ProtectedRoute allowedRoles={["admin", "employee"]}>
             <Sales />
           </ProtectedRoute>
         }
@@ -106,9 +125,24 @@ function AppRoutes() {
         }
       />
 
+
+      {/* ================= FALLBACK ================= */}
+
+      <Route
+        path="*"
+        element={
+          <ProtectedRoute allowedRoles={["admin", "employee"]}>
+            {user?.role === "admin" ? (
+              <Dashboard />
+            ) : (
+              <EmployeeDashboard />
+            )}
+          </ProtectedRoute>
+        }
+      />
+
     </Routes>
   );
 }
 
 export default AppRoutes;
-
