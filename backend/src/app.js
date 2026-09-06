@@ -18,10 +18,23 @@ const app = express();
    Middlewares https://stationery-r217.onrender.com
 ========================== */
 
-app.use(cors({
-  origin: "https://stationery-r217.onrender.com",
-  credentials: true
-}));
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://stationery-r217.onrender.com",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
