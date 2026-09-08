@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -23,6 +22,7 @@ function EmployeeDashboard() {
   });
 
   const [chartData, setChartData] = useState([]);
+
   const [loading, setLoading] = useState(true);
 
   // =====================================================
@@ -33,59 +33,87 @@ function EmployeeDashboard() {
     try {
       setLoading(true);
 
-      const [statsRes, salesRes] = await Promise.all([
-        getDashboardStats(),
-        getMonthlySales(),
-      ]);
-
-      // =====================================================
-      // DEBUG API RESPONSE
-      // =====================================================
-
-      console.log("========== DASHBOARD DEBUG ==========");
-      console.log("FULL STATS RESPONSE:", statsRes);
-      console.log("FULL SALES RESPONSE:", salesRes);
-
-      console.log("STATS RESPONSE DATA:", statsRes?.data);
-      console.log("SALES RESPONSE DATA:", salesRes?.data);
+      const [statsRes, salesRes] =
+        await Promise.all([
+          getDashboardStats(),
+          getMonthlySales(),
+        ]);
 
       console.log(
-        "SALES DATA IS ARRAY:",
-        Array.isArray(salesRes?.data)
+        "========== EMPLOYEE DASHBOARD =========="
       );
 
-      console.log("CURRENT USER:", user);
-      console.log("CURRENT USER ROLE:", user?.role);
+      console.log(
+        "FULL STATS RESPONSE:",
+        statsRes
+      );
 
-      console.log("=====================================");
+      console.log(
+        "FULL SALES RESPONSE:",
+        salesRes
+      );
 
-      // =====================================================
+      console.log(
+        "CURRENT USER:",
+        user
+      );
+
+      console.log(
+        "CURRENT ROLE:",
+        user?.role
+      );
+
+      // =================================================
       // EXTRACT STATS
-      // =====================================================
+      // =================================================
 
-      const statsData = statsRes?.data || {};
+      const statsData =
+        statsRes?.data || {};
 
-      console.log("EMPLOYEE STATS DATA:", statsData);
+      console.log(
+        "STATS DATA:",
+        statsData
+      );
 
       setStats({
-        totalProducts: Number(statsData?.totalProducts ?? 0),
-        mySales: Number(statsData?.mySales ?? 0),
-        lowStock: Number(statsData?.lowStock ?? 0),
+        totalProducts:
+          Number(
+            statsData?.totalProducts ?? 0
+          ),
+
+        mySales:
+          Number(
+            statsData?.mySales ?? 0
+          ),
+
+        lowStock:
+          Number(
+            statsData?.lowStock ?? 0
+          ),
       });
 
-      // =====================================================
+      // =================================================
       // EXTRACT SALES
-      // =====================================================
+      // =================================================
 
-      const salesData = Array.isArray(salesRes?.data)
-        ? salesRes.data
-        : [];
+      const salesData =
+        Array.isArray(salesRes?.data)
+          ? salesRes.data
+          : [];
 
-      console.log("FINAL SALES DATA:", salesData);
+      console.log(
+        "SALES DATA:",
+        salesData
+      );
 
-      // =====================================================
-      // MONTH NAMES
-      // =====================================================
+      console.log(
+        "SALES IS ARRAY:",
+        Array.isArray(salesData)
+      );
+
+      // =================================================
+      // MONTHS
+      // =================================================
 
       const months = [
         "",
@@ -103,29 +131,51 @@ function EmployeeDashboard() {
         "Dec",
       ];
 
-      // =====================================================
-      // FORMAT CHART DATA
-      // =====================================================
+      // =================================================
+      // FORMAT CHART
+      // =================================================
 
-      const formattedChart = salesData.map((item) => {
-        const monthIndex = Number(item?._id?.month ?? 0);
-        const year = item?._id?.year ?? "";
+      const formattedChart =
+        salesData.map((item) => {
+          const monthIndex =
+            Number(
+              item?._id?.month ?? 0
+            );
 
-        return {
-          month:
-            monthIndex >= 1 && monthIndex <= 12
-              ? `${months[monthIndex]} ${year}`
-              : "Unknown",
+          const year =
+            item?._id?.year ?? "";
 
-          totalSales: Number(item?.totalSales ?? 0),
-        };
-      });
+          return {
+            month:
+              monthIndex >= 1 &&
+              monthIndex <= 12
+                ? `${months[monthIndex]} ${year}`
+                : "Unknown",
 
-      console.log("FORMATTED CHART DATA:", formattedChart);
+            totalSales:
+              Number(
+                item?.totalSales ?? 0
+              ),
+          };
+        });
 
-      setChartData(formattedChart);
+      console.log(
+        "formattedChart =",
+        formattedChart
+      );
+
+      setChartData(
+        formattedChart
+      );
+
+      console.log(
+        "========================================"
+      );
     } catch (error) {
-      console.error("Dashboard Load Error:", error);
+      console.error(
+        "Dashboard Load Error:",
+        error
+      );
 
       console.error(
         "Backend Error:",
@@ -142,7 +192,7 @@ function EmployeeDashboard() {
   };
 
   // =====================================================
-  // LOAD DASHBOARD
+  // USE EFFECT
   // =====================================================
 
   useEffect(() => {
@@ -164,15 +214,13 @@ function EmployeeDashboard() {
   }
 
   // =====================================================
-  // DASHBOARD UI
+  // UI
   // =====================================================
 
   return (
     <div className="p-4 sm:p-6 space-y-8">
 
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
+      {/* HEADER */}
 
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
@@ -182,19 +230,20 @@ function EmployeeDashboard() {
         <p className="text-slate-500 mt-1">
           Welcome back,{" "}
           <span className="font-semibold text-blue-600 capitalize">
-            {user?.fullName || user?.name || "Employee"}
+            {user?.fullName ||
+              user?.name ||
+              "Employee"}
           </span>
         </p>
 
-        {/* Temporary role check */}
+        {/* Temporary Debug */}
+
         <p className="text-xs text-slate-400 mt-1">
           Role: {user?.role || "unknown"}
         </p>
       </div>
 
-      {/* =====================================================
-          EMPLOYEE STATS
-      ===================================================== */}
+      {/* EMPLOYEE STATS */}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
@@ -221,9 +270,7 @@ function EmployeeDashboard() {
 
       </div>
 
-      {/* =====================================================
-          MONTHLY SALES
-      ===================================================== */}
+      {/* MONTHLY SALES */}
 
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
 
@@ -232,7 +279,9 @@ function EmployeeDashboard() {
         </h2>
 
         {chartData.length > 0 ? (
-          <SalesChart data={chartData} />
+          <SalesChart
+            data={chartData}
+          />
         ) : (
           <div className="flex items-center justify-center h-64 text-slate-500">
             No sales data available
@@ -241,9 +290,7 @@ function EmployeeDashboard() {
 
       </div>
 
-      {/* =====================================================
-          RECENT SALES
-      ===================================================== */}
+      {/* RECENT SALES */}
 
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
 
@@ -260,4 +307,3 @@ function EmployeeDashboard() {
 }
 
 export default EmployeeDashboard;
-

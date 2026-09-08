@@ -1,49 +1,63 @@
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
-  Tooltip,
   CartesianGrid,
+  Tooltip,
 } from "recharts";
 
 function SalesChart({ data = [] }) {
-
   console.log("SalesChart data =", data);
+
+  const safeData = Array.isArray(data)
+    ? data
+    : [];
+
+  if (safeData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-slate-500">
+        No sales data available
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-lg shadow p-6 mt-8 w-full h-[400px]">
+    <div className="w-full h-[350px]">
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+      >
+        <LineChart
+          data={safeData}
+          margin={{
+            top: 10,
+            right: 20,
+            left: 10,
+            bottom: 10,
+          }}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+          />
 
-      <h2 className="text-2xl font-bold mb-6">
-        Monthly Sales
-      </h2>
+          <XAxis
+            dataKey="month"
+          />
 
-      {data.length === 0 ? (
-        <div className="text-center py-10 text-gray-500">
-          No Sales Data Available
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
+          <YAxis />
 
-            <CartesianGrid strokeDasharray="3 3" />
+          <Tooltip />
 
-            <XAxis dataKey="month" />
-
-            <YAxis />
-
-            <Tooltip />
-
-            <Bar
-              dataKey="totalSales"
-              fill="#2563eb"
-              radius={[6, 6, 0, 0]}
-            />
-
-          </BarChart>
-        </ResponsiveContainer>
-      )}
-
+          <Line
+            type="monotone"
+            dataKey="totalSales"
+            strokeWidth={3}
+            dot={{ r: 4 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }

@@ -11,11 +11,44 @@ import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.use(verifyJWT);
+// =====================================================
+// DASHBOARD STATS
+// =====================================================
 
-router.get("/", getDashboardStats);
-router.get("/monthly-sales", getMonthlySales);
-router.get("/recent-sales", getRecentSales);
-router.get("/low-stock", getLowStockProducts);
+router.get(
+  "/",
+  verifyJWT,
+  getDashboardStats
+);
+
+// =====================================================
+// MONTHLY SALES
+// =====================================================
+
+router.get(
+  "/monthly-sales",
+  verifyJWT,
+  getMonthlySales
+);
+
+// =====================================================
+// RECENT SALES
+// =====================================================
+
+router.get(
+  "/recent-sales",
+  verifyJWT,
+  getRecentSales
+);
+
+// =====================================================
+// LOW STOCK
+// =====================================================
+
+router.get(
+  "/low-stock",
+  verifyJWT,
+  getLowStockProducts
+);
 
 export default router;
