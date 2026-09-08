@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -25,7 +26,7 @@ function EmployeeDashboard() {
   const [loading, setLoading] = useState(true);
 
   // =====================================================
-  // FETCH DASHBOARD DATA
+  // FETCH DASHBOARD
   // =====================================================
 
   const fetchDashboard = async () => {
@@ -37,40 +38,53 @@ function EmployeeDashboard() {
         getMonthlySales(),
       ]);
 
-      // Debug
-      console.log("Stats API Response:", statsRes);
-      console.log("Sales API Response:", salesRes);
+      // =====================================================
+      // DEBUG API RESPONSE
+      // =====================================================
+
+      console.log("========== DASHBOARD DEBUG ==========");
+      console.log("FULL STATS RESPONSE:", statsRes);
+      console.log("FULL SALES RESPONSE:", salesRes);
+
+      console.log("STATS RESPONSE DATA:", statsRes?.data);
+      console.log("SALES RESPONSE DATA:", salesRes?.data);
+
+      console.log(
+        "SALES DATA IS ARRAY:",
+        Array.isArray(salesRes?.data)
+      );
+
+      console.log("CURRENT USER:", user);
+      console.log("CURRENT USER ROLE:", user?.role);
+
+      console.log("=====================================");
 
       // =====================================================
-      // API DATA
-      // ApiResponse structure:
-      //
-      // {
-      //   statusCode: 200,
-      //   data: {...},
-      //   message: "...",
-      //   success: true
-      // }
+      // EXTRACT STATS
       // =====================================================
 
       const statsData = statsRes?.data || {};
-      const salesData = salesRes?.data || [];
 
-      console.log("Employee Stats Data:", statsData);
-      console.log("Employee Sales Data:", salesData);
-
-      // =====================================================
-      // EMPLOYEE STATS
-      // =====================================================
+      console.log("EMPLOYEE STATS DATA:", statsData);
 
       setStats({
-        totalProducts: statsData?.totalProducts ?? 0,
-        mySales: statsData?.mySales ?? 0,
-        lowStock: statsData?.lowStock ?? 0,
+        totalProducts: Number(statsData?.totalProducts ?? 0),
+        mySales: Number(statsData?.mySales ?? 0),
+        lowStock: Number(statsData?.lowStock ?? 0),
       });
 
       // =====================================================
-      // MONTHLY SALES
+      // EXTRACT SALES
+      // =====================================================
+
+      const salesData = Array.isArray(salesRes?.data)
+        ? salesRes.data
+        : [];
+
+      console.log("FINAL SALES DATA:", salesData);
+
+      // =====================================================
+      // MONTH NAMES
       // =====================================================
 
       const months = [
@@ -89,27 +103,34 @@ function EmployeeDashboard() {
         "Dec",
       ];
 
-      const formattedChart = Array.isArray(salesData)
-        ? salesData.map((item) => {
-            const monthIndex = item?._id?.month ?? 0;
-            const year = item?._id?.year ?? "";
+      // =====================================================
+      // FORMAT CHART DATA
+      // =====================================================
 
-            return {
-              month:
-                monthIndex >= 1 && monthIndex <= 12
-                  ? `${months[monthIndex]} ${year}`
-                  : "Unknown",
+      const formattedChart = salesData.map((item) => {
+        const monthIndex = Number(item?._id?.month ?? 0);
+        const year = item?._id?.year ?? "";
 
-              totalSales: Number(item?.totalSales ?? 0),
-            };
-          })
-        : [];
+        return {
+          month:
+            monthIndex >= 1 && monthIndex <= 12
+              ? `${months[monthIndex]} ${year}`
+              : "Unknown",
 
-      console.log("Formatted Chart Data:", formattedChart);
+          totalSales: Number(item?.totalSales ?? 0),
+        };
+      });
+
+      console.log("FORMATTED CHART DATA:", formattedChart);
 
       setChartData(formattedChart);
     } catch (error) {
       console.error("Dashboard Load Error:", error);
+
+      console.error(
+        "Backend Error:",
+        error?.response?.data
+      );
 
       toast.error(
         error?.response?.data?.message ||
@@ -143,7 +164,7 @@ function EmployeeDashboard() {
   }
 
   // =====================================================
-  // UI
+  // DASHBOARD UI
   // =====================================================
 
   return (
@@ -165,7 +186,7 @@ function EmployeeDashboard() {
           </span>
         </p>
 
-        {/* Optional role debugging */}
+        {/* Temporary role check */}
         <p className="text-xs text-slate-400 mt-1">
           Role: {user?.role || "unknown"}
         </p>
@@ -201,7 +222,7 @@ function EmployeeDashboard() {
       </div>
 
       {/* =====================================================
-          MONTHLY SALES CHART
+          MONTHLY SALES
       ===================================================== */}
 
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -239,3 +260,4 @@ function EmployeeDashboard() {
 }
 
 export default EmployeeDashboard;
+
