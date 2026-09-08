@@ -1,13 +1,7 @@
 import api from "../utils/axios";
 
-export const getSales = async (
-  page = 1,
-  limit = 10,
-  search = ""
-) => {
-  const res = await api.get(
-    `/sales?page=${page}&limit=${limit}&search=${search}`
-  );
+export const getSales = async (page = 1, limit = 10, search = "") => {
+  const res = await api.get(`/sales?page=${page}&limit=${limit}&search=${search}`);
   return res.data;
 };
 

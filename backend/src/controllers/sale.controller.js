@@ -8,39 +8,24 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-
 // =====================================================
 // DOWNLOAD INVOICE
-// Admin → any invoice
-// Employee → only own invoice
 // =====================================================
-
 const downloadInvoice = asyncHandler(async (req, res) => {
-
     const { id } = req.params;
 
     const sale = await Sale.findOne({
         _id: id,
-
-        ...(req.user.role === "employee"
-            ? { createdBy: req.user._id }
-            : {}),
-    })
-        .populate("product", "productName sku sellingPrice");
+        ...(req.user.role === "employee" ? { createdBy: req.user._id } : {}),
+    }).populate("product", "productName sku sellingPrice");
 
     if (!sale) {
-        throw new ApiError(404, "Sale not found");
+        throw new ApiError(404, "Sale record not found");
     }
 
-    const doc = new PDFDocument({
-        margin: 40,
-    });
+    const doc = new PDFDocument({ margin: 40 });
 
-    res.setHeader(
-        "Content-Type",
-        "application/pdf"
-    );
-
+    res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
         "Content-Disposition",
         `attachment; filename=Invoice-${sale._id}.pdf`
@@ -48,75 +33,47 @@ const downloadInvoice = asyncHandler(async (req, res) => {
 
     doc.pipe(res);
 
-    doc
-        .fontSize(22)
-        .text("Stationery Management System", {
-            align: "center",
-        });
-
+    doc.fontSize(22).text("Stationery Management System", { align: "center" });
     doc.moveDown();
-
-    doc
-        .fontSize(18)
-        .text("SALE INVOICE", {
-            align: "center",
-        });
-
+    doc.fontSize(18).text("SALE INVOICE", { align: "center" });
     doc.moveDown(2);
 
     doc.fontSize(12);
-
     doc.text(`Invoice ID : ${sale._id}`);
-    doc.text(`Customer   : ${sale.customerName}`);
-    doc.text(`Date       : ${sale.createdAt.toLocaleString()}`);
+    doc.text(`Customer   : ${sale.customerName || "Walk-in Customer"}`);
+    doc.text(`Date       : ${new Date(sale.createdAt).toLocaleString("en-IN")}`);
     doc.text(`Payment    : ${sale.paymentStatus}`);
 
     doc.moveDown();
-
-    doc.text(`Product    : ${sale.product.productName}`);
-    doc.text(`SKU        : ${sale.product.sku}`);
+    // Safety check for deleted product references
+    doc.text(`Product    : ${sale.product?.productName || "Product Removed"}`);
+    doc.text(`SKU        : ${sale.product?.sku || "N/A"}`);
     doc.text(`Quantity   : ${sale.quantity}`);
     doc.text(`Price      : ₹${sale.sellingPrice}`);
 
     doc.moveDown();
-
-    doc
-        .fontSize(14)
-        .text(`Total Amount : ₹${sale.totalAmount}`);
+    doc.fontSize(14).text(`Total Amount : ₹${sale.totalAmount}`);
 
     doc.moveDown(2);
-
-    doc.text(
-        "Thank you for shopping with us!",
-        {
-            align: "center",
-        }
-    );
+    doc.text("Thank you for shopping with us!", { align: "center" });
 
     doc.end();
 });
 
-
 // =====================================================
 // DELETE SALE
-// Admin only
 // =====================================================
-
 const deleteSale = asyncHandler(async (req, res) => {
-
     const { id } = req.params;
 
     const sale = await Sale.findById(id);
-
     if (!sale) {
         throw new ApiError(404, "Sale not found");
     }
 
     const product = await Product.findById(sale.product);
-
     if (product) {
         product.stock += sale.quantity;
-
         await product.save();
     }
 
@@ -129,572 +86,234 @@ const deleteSale = asyncHandler(async (req, res) => {
     await Sale.findByIdAndDelete(id);
 
     return res.status(200).json(
-        new ApiResponse(
-            200,
-            {},
-            "Sale deleted successfully"
-        )
+        new ApiResponse(200, {}, "Sale deleted successfully")
     );
 });
 
-
 // =====================================================
 // CREATE SALE
-// Admin + Employee
 // =====================================================
-
 const createSale = asyncHandler(async (req, res) => {
+    let { productId, product, quantity, customerName, paymentStatus = "PAID" } = req.body;
 
-    let {
-        productId,
-        quantity,
-        customerName,
-        paymentStatus = "PAID",
-    } = req.body;
-
+    const targetProductId = productId || product;
     quantity = Number(quantity);
 
-    if (!productId || !quantity || quantity <= 0) {
-        throw new ApiError(
-            400,
-            "Product ID and valid quantity are required"
-        );
+    if (!targetProductId || !quantity || quantity <= 0) {
+        throw new ApiError(400, "Product ID and valid quantity are required");
     }
 
     paymentStatus = paymentStatus.toUpperCase();
 
-    const product = await Product.findById(productId);
-
-    if (!product) {
-        throw new ApiError(
-            404,
-            "Product not found"
-        );
+    const selectedProduct = await Product.findById(targetProductId);
+    if (!selectedProduct) {
+        throw new ApiError(404, "Product not found");
     }
 
-    if (product.stock < quantity) {
-        throw new ApiError(
-            400,
-            "Insufficient stock"
-        );
+    if (selectedProduct.stock < quantity) {
+        throw new ApiError(400, "Insufficient stock available");
     }
 
-    const totalAmount =
-        product.sellingPrice * quantity;
+    const totalAmount = selectedProduct.sellingPrice * quantity;
 
+    // Reduce stock
+    selectedProduct.stock -= quantity;
+    await selectedProduct.save();
 
-    // Reduce product stock
-    product.stock -= quantity;
-
-    await product.save();
-
-
-    // Create sale
+    // Create Sale Record
     const sale = await Sale.create({
-
-        product: productId,
-
+        product: targetProductId,
         quantity,
-
-        sellingPrice: product.sellingPrice,
-
+        sellingPrice: selectedProduct.sellingPrice,
         totalAmount,
-
-        customerName:
-            customerName || "Walk-in Customer",
-
+        customerName: customerName?.trim() || "Walk-in Customer",
         paymentStatus,
-
         createdBy: req.user._id,
     });
 
-
-    // Create inventory OUT entry
+    // Create Inventory Log
     await Inventory.create({
-
-        product: productId,
-
+        product: targetProductId,
         type: "OUT",
-
         quantity,
-
         note: "Sold via sales module",
-
         createdBy: req.user._id,
     });
-
 
     return res.status(201).json(
-        new ApiResponse(
-            201,
-            sale,
-            "Sale created successfully"
-        )
+        new ApiResponse(201, sale, "Sale created successfully")
     );
 });
-
 
 // =====================================================
 // GET ALL SALES
-//
-// Admin    → all sales
-// Employee → only own sales
 // =====================================================
-
 const getAllSales = asyncHandler(async (req, res) => {
-
-    const page =
-        Number(req.query.page) || 1;
-
-    const limit =
-        Number(req.query.limit) || 10;
-
-    const search =
-        req.query.search || "";
-
-    const skip =
-        (page - 1) * limit;
-
-
-    // ==========================================
-    // ROLE BASED FILTER
-    // ==========================================
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const search = req.query.search || "";
+    const skip = (page - 1) * limit;
 
     const filter = {
-
-        ...(req.user.role === "employee"
-            ? {
-                createdBy: req.user._id,
-            }
-            : {}),
-
-        ...(search
-            ? {
-                customerName: {
-                    $regex: search,
-                    $options: "i",
-                },
-            }
-            : {}),
+        ...(req.user.role === "employee" ? { createdBy: req.user._id } : {}),
+        ...(search ? { customerName: { $regex: search, $options: "i" } } : {}),
     };
 
+    const totalSales = await Sale.countDocuments(filter);
 
-    // Total sales
-    const totalSales =
-        await Sale.countDocuments(filter);
+    const sales = await Sale.find(filter)
+        .populate("product", "productName sku sellingPrice")
+        .populate("createdBy", "fullName email role")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
 
-
-    // Sales list
-    const sales =
-        await Sale.find(filter)
-
-            .populate(
-                "product",
-                "productName sku sellingPrice"
-            )
-
-            .populate(
-                "createdBy",
-                "fullName email role"
-            )
-
-            .sort({
-                createdAt: -1,
-            })
-
-            .skip(skip)
-
-            .limit(limit);
-
-
-    // ==========================================
-    // REVENUE
-    //
-    // Admin    → total company revenue
-    // Employee → only own revenue
-    // ==========================================
-
-    const revenue =
-        await Sale.aggregate([
-
-            {
-                $match:
-                    req.user.role === "employee"
-                        ? {
-                            createdBy:
-                                req.user._id,
-                        }
-                        : {},
+    const revenue = await Sale.aggregate([
+        {
+            $match: req.user.role === "employee" ? { createdBy: req.user._id } : {},
+        },
+        {
+            $group: {
+                _id: null,
+                totalRevenue: { $sum: "$totalAmount" },
             },
-
-            {
-                $group: {
-
-                    _id: null,
-
-                    totalRevenue: {
-                        $sum: "$totalAmount",
-                    },
-
-                },
-            },
-
-        ]);
-
+        },
+    ]);
 
     return res.status(200).json(
-
         new ApiResponse(
-
             200,
-
             {
-
                 sales,
-
                 page,
-
                 limit,
-
                 totalSales,
-
-                totalPages:
-                    Math.ceil(
-                        totalSales / limit
-                    ),
-
-                totalRevenue:
-                    revenue[0]
-                        ?.totalRevenue || 0,
-
+                totalPages: Math.ceil(totalSales / limit) || 1,
+                totalRevenue: revenue[0]?.totalRevenue || 0,
             },
-
             "Sales fetched successfully"
-
         )
-
     );
 });
-
 
 // =====================================================
 // GET SALE BY ID
-//
-// Admin    → any sale
-// Employee → only own sale
 // =====================================================
-
 const getSaleById = asyncHandler(async (req, res) => {
-
     const { id } = req.params;
 
-
-    const sale =
-        await Sale.findOne({
-
-            _id: id,
-
-            ...(req.user.role === "employee"
-                ? {
-                    createdBy:
-                        req.user._id,
-                }
-                : {}),
-
-        })
-
-            .populate(
-                "product",
-                "productName sku sellingPrice costPrice"
-            )
-
-            .populate(
-                "createdBy",
-                "fullName email role"
-            );
-
+    const sale = await Sale.findOne({
+        _id: id,
+        ...(req.user.role === "employee" ? { createdBy: req.user._id } : {}),
+    })
+        .populate("product", "productName sku sellingPrice costPrice")
+        .populate("createdBy", "fullName email role");
 
     if (!sale) {
-
-        throw new ApiError(
-            404,
-            "Sale not found"
-        );
-
+        throw new ApiError(404, "Sale not found");
     }
 
-
     return res.status(200).json(
-
-        new ApiResponse(
-
-            200,
-
-            sale,
-
-            "Sale fetched successfully"
-
-        )
-
+        new ApiResponse(200, sale, "Sale fetched successfully")
     );
 });
-
 
 // =====================================================
 // SALES SUMMARY
-// Admin only
 // =====================================================
-
 const getSalesSummary = asyncHandler(async (req, res) => {
+    const totalSales = await Sale.countDocuments();
 
-    const totalSales =
-        await Sale.countDocuments();
-
-
-    const revenueData =
-        await Sale.aggregate([
-
-            {
-                $group: {
-
-                    _id: null,
-
-                    totalRevenue: {
-                        $sum: "$totalAmount",
-                    },
-
-                },
+    const revenueData = await Sale.aggregate([
+        {
+            $group: {
+                _id: null,
+                totalRevenue: { $sum: "$totalAmount" },
             },
+        },
+    ]);
 
-        ]);
-
-
-    const productData =
-        await Sale.aggregate([
-
-            {
-                $group: {
-
-                    _id: null,
-
-                    totalSold: {
-                        $sum: "$quantity",
-                    },
-
-                },
+    const productData = await Sale.aggregate([
+        {
+            $group: {
+                _id: null,
+                totalSold: { $sum: "$quantity" },
             },
+        },
+    ]);
 
-        ]);
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
 
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
 
-    // ==========================================
-    // TODAY
-    // ==========================================
+    const todaySales = await Sale.countDocuments({
+        createdAt: { $gte: startOfDay, $lte: endOfDay },
+    });
 
-    const startOfDay =
-        new Date();
-
-    startOfDay.setHours(
-        0,
-        0,
-        0,
-        0
-    );
-
-
-    const endOfDay =
-        new Date();
-
-    endOfDay.setHours(
-        23,
-        59,
-        59,
-        999
-    );
-
-
-    const todaySales =
-        await Sale.countDocuments({
-
-            createdAt: {
-
-                $gte: startOfDay,
-
-                $lte: endOfDay,
-
+    const todayRevenue = await Sale.aggregate([
+        {
+            $match: {
+                createdAt: { $gte: startOfDay, $lte: endOfDay },
             },
-
-        });
-
-
-    const todayRevenue =
-        await Sale.aggregate([
-
-            {
-
-                $match: {
-
-                    createdAt: {
-
-                        $gte: startOfDay,
-
-                        $lte: endOfDay,
-
-                    },
-
-                },
-
+        },
+        {
+            $group: {
+                _id: null,
+                revenue: { $sum: "$totalAmount" },
             },
-
-            {
-
-                $group: {
-
-                    _id: null,
-
-                    revenue: {
-                        $sum: "$totalAmount",
-                    },
-
-                },
-
-            },
-
-        ]);
-
+        },
+    ]);
 
     return res.status(200).json(
-
         new ApiResponse(
-
             200,
-
             {
-
                 totalSales,
-
-                totalRevenue:
-                    revenueData[0]
-                        ?.totalRevenue || 0,
-
-                totalProductsSold:
-                    productData[0]
-                        ?.totalSold || 0,
-
+                totalRevenue: revenueData[0]?.totalRevenue || 0,
+                totalProductsSold: productData[0]?.totalSold || 0,
                 todaySales,
-
-                todayRevenue:
-                    todayRevenue[0]
-                        ?.revenue || 0,
-
+                todayRevenue: todayRevenue[0]?.revenue || 0,
             },
-
             "Sales summary fetched successfully"
-
         )
-
     );
 });
 
-
 // =====================================================
 // TOP SELLING PRODUCTS
-// Admin only
 // =====================================================
+const getTopSellingProducts = asyncHandler(async (req, res) => {
+    const limit = Number(req.query.limit) || 5;
 
-const getTopSellingProducts =
-    asyncHandler(async (req, res) => {
+    const topProducts = await Sale.aggregate([
+        {
+            $group: {
+                _id: "$product",
+                totalSold: { $sum: "$quantity" },
+                totalRevenue: { $sum: "$totalAmount" },
+            },
+        },
+        { $sort: { totalSold: -1 } },
+        { $limit: limit },
+    ]);
 
-        const limit =
-            Number(req.query.limit) || 5;
-
-
-        const topProducts =
-            await Sale.aggregate([
-
-                {
-
-                    $group: {
-
-                        _id: "$product",
-
-                        totalSold: {
-                            $sum: "$quantity",
-                        },
-
-                        totalRevenue: {
-                            $sum: "$totalAmount",
-                        },
-
-                    },
-
-                },
-
-                {
-
-                    $sort: {
-
-                        totalSold: -1,
-
-                    },
-
-                },
-
-                {
-
-                    $limit: limit,
-
-                },
-
-            ]);
-
-
-        const populatedData =
-            await Sale.populate(
-                topProducts,
-                {
-                    path: "_id",
-                    select:
-                        "productName sku sellingPrice",
-                }
-            );
-
-
-        const result =
-            populatedData.map(
-                (item) => ({
-
-                    product: item._id,
-
-                    totalSold:
-                        item.totalSold,
-
-                    totalRevenue:
-                        item.totalRevenue,
-
-                })
-            );
-
-
-        return res.status(200).json(
-
-            new ApiResponse(
-
-                200,
-
-                result,
-
-                "Top selling products fetched successfully"
-
-            )
-
-        );
+    const populatedData = await Sale.populate(topProducts, {
+        path: "_id",
+        select: "productName sku sellingPrice",
     });
 
+    const result = populatedData.map((item) => ({
+        product: item._id,
+        totalSold: item.totalSold,
+        totalRevenue: item.totalRevenue,
+    }));
 
-// =====================================================
-// EXPORT
-// =====================================================
+    return res.status(200).json(
+        new ApiResponse(200, result, "Top selling products fetched successfully")
+    );
+});
 
 export {
     createSale,
