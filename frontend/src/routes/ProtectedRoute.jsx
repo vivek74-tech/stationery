@@ -1,27 +1,70 @@
-
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-function ProtectedRoute({ children, allowedRoles }) {
-  const { user, isAuthenticated, loading } = useAuth();
+function ProtectedRoute({
+  children,
+  allowedRoles = [],
+}) {
+  const {
+    user,
+    isAuthenticated,
+    loading,
+  } = useAuth();
 
-  // Auth state load hone ka wait
+  // =====================================================
+  // WAIT FOR AUTH
+  // =====================================================
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        Loading...
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-slate-500 font-medium">
+          Loading...
+        </div>
       </div>
     );
   }
 
-  // Login nahi hai
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  // =====================================================
+  // NOT LOGGED IN
+  // =====================================================
+
+  if (!isAuthenticated || !user) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
   }
 
-  // Role allowed nahi hai
-  if (allowedRoles && !allowedRoles.includes(user?.role)) {
-    return <Navigate to="/" replace />;
+  // =====================================================
+  // NORMALIZE ROLE
+  // =====================================================
+
+  const role = user?.role
+    ?.toLowerCase()
+    ?.trim();
+
+  console.log("ProtectedRoute:");
+  console.log("User:", user);
+  console.log("Role:", role);
+  console.log("Allowed Roles:", allowedRoles);
+
+  // =====================================================
+  // ROLE CHECK
+  // =====================================================
+
+  if (
+    allowedRoles.length > 0 &&
+    !allowedRoles.includes(role)
+  ) {
+    return (
+      <Navigate
+        to="/"
+        replace
+      />
+    );
   }
 
   return children;
