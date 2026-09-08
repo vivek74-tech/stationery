@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 
 import StatCard from "../../components/dashboard/StatCard";
@@ -24,8 +24,8 @@ function EmployeeDashboard() {
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // FETCH DASHBOARD DATA
-  const fetchDashboard = async () => {
+  // FETCH DASHBOARD DATA - Memorized to prevent Infinite Re-renders
+  const fetchDashboard = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -78,11 +78,19 @@ function EmployeeDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchDashboard();
-  }, []);
+    let isMounted = true;
+
+    if (isMounted) {
+      fetchDashboard();
+    }
+
+    return () => {
+      isMounted = false; // Cleanup on unmount
+    };
+  }, [fetchDashboard]);
 
   if (loading) {
     return (
@@ -148,7 +156,7 @@ function EmployeeDashboard() {
         )}
       </div>
 
-      {/* RECENT SALES (Duplicate H2 removed to match RecentActivity component UI) */}
+      {/* RECENT SALES */}
       <div className="bg-white p-2 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
         <RecentActivity />
       </div>
