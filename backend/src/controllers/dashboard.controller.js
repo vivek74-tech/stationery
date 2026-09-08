@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Product } from "../models/product.model.js";
 import { Category } from "../models/category.model.js";
 import { User } from "../models/user.model.js";
@@ -15,16 +16,9 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   const userRole = req.user.role;
   const userId = req.user._id;
 
-  console.log("=================================");
-  console.log("DASHBOARD STATS");
-  console.log("USER:", userId);
-  console.log("ROLE:", userRole);
-  console.log("=================================");
-
   // ===================================================
-  // ADMIN
+  // ADMIN STATS
   // ===================================================
-
   if (userRole === "admin") {
     const [
       totalProducts,
@@ -35,34 +29,23 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       lowStock,
     ] = await Promise.all([
       Product.countDocuments(),
-
       Category.countDocuments(),
-
       Supplier.countDocuments(),
-
       User.countDocuments(),
-
       Sale.countDocuments(),
-
-      Product.countDocuments({
-        stock: { $lte: 10 },
-      }),
+      Product.countDocuments({ stock: { $lte: 10 } }),
     ]);
 
     const revenueResult = await Sale.aggregate([
       {
         $group: {
           _id: null,
-
-          totalRevenue: {
-            $sum: "$totalAmount",
-          },
+          totalRevenue: { $sum: "$totalAmount" },
         },
       },
     ]);
 
-    const totalRevenue =
-      revenueResult[0]?.totalRevenue || 0;
+    const totalRevenue = revenueResult[0]?.totalRevenue || 0;
 
     return res.status(200).json(
       new ApiResponse(
@@ -82,31 +65,48 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   }
 
   // ===================================================
-  // EMPLOYEE
+  // EMPLOYEE STATS
   // ===================================================
-
   const [
     totalProducts,
+    totalCategories,
+    totalSuppliers,
     mySales,
     lowStock,
   ] = await Promise.all([
     Product.countDocuments(),
-
+    Category.countDocuments(),
+    Supplier.countDocuments(),
     Sale.countDocuments({
-      createdBy: userId,
+      createdBy: new mongoose.Types.ObjectId(userId),
     }),
-
-    Product.countDocuments({
-      stock: { $lte: 10 },
-    }),
+    Product.countDocuments({ stock: { $lte: 10 } }),
   ]);
+
+  // Employee Sales Revenue Calculation
+  const revenueResult = await Sale.aggregate([
+    {
+      $match: { createdBy: new mongoose.Types.ObjectId(userId) },
+    },
+    {
+      $group: {
+        _id: null,
+        myRevenue: { $sum: "$totalAmount" },
+      },
+    },
+  ]);
+
+  const myRevenue = revenueResult[0]?.myRevenue || 0;
 
   return res.status(200).json(
     new ApiResponse(
       200,
       {
         totalProducts,
+        totalCategories,
+        totalSuppliers,
         mySales,
+        myRevenue,
         lowStock,
       },
       "Employee dashboard stats fetched successfully"
@@ -122,53 +122,29 @@ const getMonthlySales = asyncHandler(async (req, res) => {
   const userRole = req.user.role;
   const userId = req.user._id;
 
-  console.log("=================================");
-  console.log("MONTHLY SALES");
-  console.log("USER:", userId);
-  console.log("ROLE:", userRole);
-  console.log("=================================");
-
-  // ===================================================
-  // EMPLOYEE FILTER
-  // ===================================================
-
   let matchStage = {};
 
   if (userRole === "employee") {
     matchStage = {
-      createdBy: userId,
+      createdBy: new mongoose.Types.ObjectId(userId),
     };
   }
 
-  console.log("MATCH STAGE:", matchStage);
-
-  // ===================================================
-  // AGGREGATION
-  // ===================================================
-
+  // AGGREGATION PIPELINE
   const monthlySales = await Sale.aggregate([
     {
       $match: matchStage,
     },
-
     {
       $group: {
         _id: {
-          month: {
-            $month: "$createdAt",
-          },
-
-          year: {
-            $year: "$createdAt",
-          },
+          month: { $month: "$createdAt" },
+          year: { $year: "$createdAt" },
         },
-
-        totalSales: {
-          $sum: "$totalAmount",
-        },
+        totalSales: { $sum: "$totalAmount" },
+        count: { $sum: 1 },
       },
     },
-
     {
       $sort: {
         "_id.year": 1,
@@ -176,11 +152,6 @@ const getMonthlySales = asyncHandler(async (req, res) => {
       },
     },
   ]);
-
-  console.log(
-    "MONTHLY SALES RESULT:",
-    monthlySales
-  );
 
   return res.status(200).json(
     new ApiResponse(
@@ -203,22 +174,15 @@ const getRecentSales = asyncHandler(async (req, res) => {
 
   if (userRole === "employee") {
     filter = {
-      createdBy: userId,
+      createdBy: new mongoose.Types.ObjectId(userId),
     };
   }
 
   const sales = await Sale.find(filter)
-    .populate(
-      "product",
-      "productName sku"
-    )
-    .populate(
-      "createdBy",
-      "fullName email role"
-    )
-    .sort({
-      createdAt: -1,
-    })
+    .populate("product", "productName sku price")
+    .populate("items.product", "productName sku price")
+    .populate("createdBy", "fullName name email role")
+    .sort({ createdAt: -1 })
     .limit(5);
 
   return res.status(200).json(
@@ -234,33 +198,24 @@ const getRecentSales = asyncHandler(async (req, res) => {
 // LOW STOCK PRODUCTS
 // =====================================================
 
-const getLowStockProducts = asyncHandler(
-  async (req, res) => {
-    const products = await Product.find({
-      stock: {
-        $lte: 10,
-      },
-    })
-      .populate(
-        "category",
-        "name"
-      )
-      .sort({
-        stock: 1,
-      });
+const getLowStockProducts = asyncHandler(async (req, res) => {
+  const products = await Product.find({
+    stock: { $lte: 10 },
+  })
+    .populate("category", "name categoryName")
+    .sort({ stock: 1 });
 
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        products,
-        "Low stock products fetched successfully"
-      )
-    );
-  }
-);
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      products,
+      "Low stock products fetched successfully"
+    )
+  );
+});
 
 // =====================================================
-// EXPORT
+// EXPORTS
 // =====================================================
 
 export {
