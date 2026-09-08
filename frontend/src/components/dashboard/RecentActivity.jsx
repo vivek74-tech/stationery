@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-
 import { getRecentSales } from "../../services/dashboard.service";
 
 function RecentActivity() {
@@ -10,17 +9,16 @@ function RecentActivity() {
   const fetchRecentSales = async () => {
     try {
       setLoading(true);
-
       const response = await getRecentSales();
 
-      // Flexible unwrapping for API array response
-      const salesList = Array.isArray(response?.data)
-        ? response.data
-        : Array.isArray(response)
-        ? response
-        : [];
+      // Deep data unwrapping logic (fixes nested data issue)
+      const salesList =
+        response?.data?.sales ||
+        response?.data?.recentSales ||
+        (Array.isArray(response?.data) ? response.data : null) ||
+        (Array.isArray(response) ? response : []);
 
-      setSales(salesList);
+      setSales(Array.isArray(salesList) ? salesList : []);
     } catch (error) {
       console.error("Fetch Recent Sales Error:", error);
       toast.error(
@@ -38,9 +36,6 @@ function RecentActivity() {
   if (loading) {
     return (
       <div className="bg-white rounded-lg p-6">
-        <h2 className="text-xl font-bold mb-4 text-slate-800">
-          Recent Activity
-        </h2>
         <p className="text-slate-400 text-center py-8 text-sm font-medium animate-pulse">
           Loading recent sales...
         </p>
@@ -50,10 +45,6 @@ function RecentActivity() {
 
   return (
     <div className="bg-white rounded-lg p-2 sm:p-4">
-      <h2 className="text-xl font-bold mb-4 text-slate-800">
-        Recent Activity
-      </h2>
-
       {sales.length === 0 ? (
         <div className="text-center py-8 text-slate-400 text-sm font-medium">
           No recent sales available
@@ -74,9 +65,9 @@ function RecentActivity() {
 
             <tbody className="divide-y divide-slate-100">
               {sales.map((sale) => {
-                // Support single product & multi-item schemas
                 const productName =
                   sale.product?.productName ||
+                  sale.product?.name ||
                   sale.items?.[0]?.product?.productName ||
                   "Product Item";
 

@@ -9,7 +9,6 @@ function Sales() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form State
   const [form, setForm] = useState({
     productId: "",
     quantity: 1,
@@ -17,19 +16,16 @@ function Sales() {
     paymentStatus: "PAID",
   });
 
-  // Selected Product Details (for UI stock calculation)
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // Fetch Initial Data (Products & Sales)
   const fetchData = async () => {
     try {
       setLoading(true);
       const [salesRes, productsRes] = await Promise.all([
         getSales(1, 20, ""),
-        getProducts(1, 100, ""), // Fetch available products list
+        getProducts(1, 100, ""),
       ]);
 
-      // Safe Data Extraction
       const salesList =
         salesRes?.data?.sales ||
         salesRes?.sales ||
@@ -58,7 +54,6 @@ function Sales() {
     fetchData();
   }, []);
 
-  // Handle Product Selection Change
   const handleProductChange = (e) => {
     const pId = e.target.value;
     const prod = products.find((p) => p._id === pId);
@@ -66,7 +61,6 @@ function Sales() {
     setForm((prev) => ({ ...prev, productId: pId }));
   };
 
-  // Form Submit Handler
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -88,18 +82,25 @@ function Sales() {
     try {
       setSubmitting(true);
 
-      // Create Sale API Call
-      await createSale({
+      // Support for both schema structures (Direct Object + Multi-item array)
+      const payload = {
         productId: form.productId,
-        product: form.productId, // Fallback alias
+        product: form.productId,
         quantity: qty,
         customerName: form.customerName?.trim() || "Walk-in Customer",
         paymentStatus: form.paymentStatus || "PAID",
-      });
+        items: [
+          {
+            product: form.productId,
+            quantity: qty,
+          },
+        ],
+      };
+
+      await createSale(payload);
 
       toast.success("Sale created successfully!");
 
-      // Reset Form
       setForm({
         productId: "",
         quantity: 1,
@@ -108,7 +109,6 @@ function Sales() {
       });
       setSelectedProduct(null);
 
-      // Refresh Sales & Updated Stock
       fetchData();
     } catch (error) {
       console.error("Create Sale Error Details:", error?.response?.data);
@@ -134,7 +134,6 @@ function Sales() {
 
   return (
     <div className="p-4 sm:p-6 space-y-8">
-      {/* HEADER */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
           Sales Management
@@ -144,14 +143,12 @@ function Sales() {
         </p>
       </div>
 
-      {/* CREATE SALE FORM */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <h2 className="text-lg font-bold text-slate-800 mb-4">
           Create New Sale
         </h2>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* SELECT PRODUCT */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
               Select Product *
@@ -171,7 +168,6 @@ function Sales() {
             </select>
           </div>
 
-          {/* QUANTITY */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
               Quantity *
@@ -190,7 +186,6 @@ function Sales() {
             />
           </div>
 
-          {/* CUSTOMER NAME */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
               Customer Name
@@ -206,7 +201,6 @@ function Sales() {
             />
           </div>
 
-          {/* SUBMIT BUTTON */}
           <div className="flex items-end">
             <button
               type="submit"
@@ -219,7 +213,6 @@ function Sales() {
         </form>
       </div>
 
-      {/* SALES HISTORY TABLE */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <h2 className="text-lg font-bold text-slate-800 mb-4">
           Sales Records
@@ -241,12 +234,12 @@ function Sales() {
                 {sales.map((item) => (
                   <tr key={item._id} className="hover:bg-slate-50">
                     <td className="py-3 px-3 font-medium text-slate-800">
-                      {item.product?.productName || item.product?.name || "N/A"}
+                      {item.product?.productName || item.product?.name || item.items?.[0]?.product?.productName || "N/A"}
                     </td>
                     <td className="py-3 px-3 text-slate-600">
                       {item.customerName || "Walk-in Customer"}
                     </td>
-                    <td className="py-3 px-3">{item.quantity}</td>
+                    <td className="py-3 px-3">{item.quantity || item.items?.[0]?.quantity || 1}</td>
                     <td className="py-3 px-3 font-bold text-slate-800">
                       ₹{item.totalAmount}
                     </td>
