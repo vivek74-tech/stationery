@@ -11,7 +11,6 @@ import {
 function SalesChart({ data = [] }) {
 
   console.log("SalesChart data =", data);
-
   return (
     <div className="bg-white rounded-lg shadow p-6 mt-8 w-full h-[400px]">
 

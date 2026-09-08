@@ -17,7 +17,7 @@ function RecentActivity() {
       setSales(response?.data || []);
 
     } catch (error) {
-      console.error("Recent sales error:", error);
+     
 
       toast.error(
         error.response?.data?.message ||
