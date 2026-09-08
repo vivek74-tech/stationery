@@ -24,7 +24,7 @@ const createCategory = asyncHandler(async (req, res) => {
 
   const populatedCategory = await Category.findById(category._id).populate(
     "createdBy",
-    "fullname email role"
+    "fullName email role"
   );
 
   return res.status(201).json(
