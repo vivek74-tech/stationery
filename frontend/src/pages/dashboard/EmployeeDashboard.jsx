@@ -81,15 +81,7 @@ function EmployeeDashboard() {
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
-    if (isMounted) {
-      fetchDashboard();
-    }
-
-    return () => {
-      isMounted = false; // Cleanup on unmount
-    };
+    fetchDashboard();
   }, [fetchDashboard]);
 
   if (loading) {
