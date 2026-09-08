@@ -39,6 +39,10 @@ function EmployeeDashboard() {
         getMonthlySales(),
       ]);
 
+      // Debugging ke liye browser console check karein
+      console.log("Stats API Response:", statsRes);
+      console.log("Sales API Response:", salesRes);
+
       // Safe extraction for nested response structures
       const statsData = statsRes?.data?.data || statsRes?.data || {};
       const salesData = salesRes?.data?.data || salesRes?.data || [];
