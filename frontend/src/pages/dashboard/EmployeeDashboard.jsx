@@ -27,6 +27,7 @@ function EmployeeDashboard() {
   // =====================================================
   // FETCH DASHBOARD DATA
   // =====================================================
+
   const fetchDashboard = async () => {
     try {
       setLoading(true);
@@ -36,29 +37,30 @@ function EmployeeDashboard() {
         getMonthlySales(),
       ]);
 
-      // Debugging
+      // Debug
       console.log("Stats API Response:", statsRes);
       console.log("Sales API Response:", salesRes);
 
       // =====================================================
-      // EXTRACT API DATA
+      // API DATA
+      // ApiResponse structure:
+      //
+      // {
+      //   statusCode: 200,
+      //   data: {...},
+      //   message: "...",
+      //   success: true
+      // }
       // =====================================================
 
-      const statsData = statsRes?.data?.data || statsRes?.data || {};
-      const salesData = salesRes?.data?.data || salesRes?.data || [];
+      const statsData = statsRes?.data || {};
+      const salesData = salesRes?.data || [];
 
       console.log("Employee Stats Data:", statsData);
       console.log("Employee Sales Data:", salesData);
 
       // =====================================================
       // EMPLOYEE STATS
-      // Backend employee response:
-      //
-      // {
-      //   totalProducts,
-      //   mySales,
-      //   lowStock
-      // }
       // =====================================================
 
       setStats({
@@ -68,7 +70,7 @@ function EmployeeDashboard() {
       });
 
       // =====================================================
-      // MONTHLY SALES CHART
+      // MONTHLY SALES
       // =====================================================
 
       const months = [
@@ -89,19 +91,21 @@ function EmployeeDashboard() {
 
       const formattedChart = Array.isArray(salesData)
         ? salesData.map((item) => {
-            const monthIndex = item?._id?.month || 0;
-            const year = item?._id?.year || "";
+            const monthIndex = item?._id?.month ?? 0;
+            const year = item?._id?.year ?? "";
 
             return {
               month:
-                monthIndex > 0 && monthIndex <= 12
+                monthIndex >= 1 && monthIndex <= 12
                   ? `${months[monthIndex]} ${year}`
                   : "Unknown",
 
-              totalSales: item?.totalSales ?? 0,
+              totalSales: Number(item?.totalSales ?? 0),
             };
           })
         : [];
+
+      console.log("Formatted Chart Data:", formattedChart);
 
       setChartData(formattedChart);
     } catch (error) {
@@ -157,8 +161,13 @@ function EmployeeDashboard() {
         <p className="text-slate-500 mt-1">
           Welcome back,{" "}
           <span className="font-semibold text-blue-600 capitalize">
-            {user?.name || user?.fullName || "Employee"}
+            {user?.fullName || user?.name || "Employee"}
           </span>
+        </p>
+
+        {/* Optional role debugging */}
+        <p className="text-xs text-slate-400 mt-1">
+          Role: {user?.role || "unknown"}
         </p>
       </div>
 
@@ -168,8 +177,6 @@ function EmployeeDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
-        {/* PRODUCTS */}
-
         <StatCard
           title="Available Products"
           value={stats.totalProducts}
@@ -177,16 +184,12 @@ function EmployeeDashboard() {
           color="bg-blue-600"
         />
 
-        {/* MY SALES */}
-
         <StatCard
           title="My Sales"
           value={stats.mySales}
           icon="🛒"
           color="bg-purple-600"
         />
-
-        {/* LOW STOCK */}
 
         <StatCard
           title="Low Stock Warning"
