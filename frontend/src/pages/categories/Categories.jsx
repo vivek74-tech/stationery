@@ -41,10 +41,10 @@ const fetchCategories = async () => {
       sort
     );
 
-    console.log("Category Response:", response);
-    console.log("Category Data:", response.data);
-    console.log("Categories:", response.data.categories);
-    console.log("Count:", response.data.categories.length);
+    // console.log("Category Response:", response);
+    // console.log("Category Data:", response.data);
+    // console.log("Categories:", response.data.categories);
+    // console.log("Count:", response.data.categories.length);
 
     setCategories(response.data.categories);
     setTotalPages(response.data.totalPages);
