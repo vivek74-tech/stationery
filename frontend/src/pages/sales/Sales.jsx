@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { createSale, getSales } from "../services/sale.service";
+import { createSale, getSales, downloadInvoice, deleteSale } from "../services/sale.service";
 import { getProducts } from "../services/product.service";
 
 function Sales() {
@@ -26,26 +26,15 @@ function Sales() {
         getProducts(1, 100, ""),
       ]);
 
-      const salesList =
-        salesRes?.data?.sales ||
-        salesRes?.sales ||
-        salesRes?.data ||
-        [];
-
-      const productsList =
-        productsRes?.data?.products ||
-        productsRes?.products ||
-        productsRes?.data ||
-        [];
+      const salesList = salesRes?.data?.sales || [];
+      const productsList = productsRes?.data?.products || [];
 
       setSales(Array.isArray(salesList) ? salesList : []);
       setProducts(Array.isArray(productsList) ? productsList : []);
     } catch (error) {
       console.error("Sales Fetch Error:", error);
-      toast.error(
-        error?.response?.data?.message || "Failed to load sales data"
-      );
-    } finally {
+      toast.error(error?.response?.data?.message || "Failed to load sales data");
+    } fontFinally: {
       setLoading(false);
     }
   };
@@ -74,33 +63,19 @@ function Sales() {
     }
 
     if (selectedProduct && selectedProduct.stock < qty) {
-      return toast.error(
-        `Insufficient stock! Only ${selectedProduct.stock} available.`
-      );
+      return toast.error(`Insufficient stock! Only ${selectedProduct.stock} available.`);
     }
 
     try {
       setSubmitting(true);
-
-      // Support for both schema structures (Direct Object + Multi-item array)
-      const payload = {
+      await createSale({
         productId: form.productId,
-        product: form.productId,
         quantity: qty,
         customerName: form.customerName?.trim() || "Walk-in Customer",
         paymentStatus: form.paymentStatus || "PAID",
-        items: [
-          {
-            product: form.productId,
-            quantity: qty,
-          },
-        ],
-      };
-
-      await createSale(payload);
+      });
 
       toast.success("Sale created successfully!");
-
       setForm({
         productId: "",
         quantity: 1,
@@ -108,17 +83,38 @@ function Sales() {
         paymentStatus: "PAID",
       });
       setSelectedProduct(null);
-
       fetchData();
     } catch (error) {
-      console.error("Create Sale Error Details:", error?.response?.data);
-      const errorMsg =
-        error?.response?.data?.message ||
-        error?.response?.data?.errors?.[0] ||
-        "Failed to create sale";
-      toast.error(errorMsg);
+      console.error("Create Sale Error:", error);
+      toast.error(error?.response?.data?.message || "Failed to create sale");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDownloadInvoice = async (id) => {
+    try {
+      const blob = await downloadInvoice(id);
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Invoice-${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      toast.error("Failed to download invoice");
+    }
+  };
+
+  const handleDeleteSale = async (id) => {
+    if (!window.confirm("Are you sure you want to revert and delete this sale?")) return;
+    try {
+      await deleteSale(id);
+      toast.success("Sale reverted and deleted");
+      fetchData();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to delete sale");
     }
   };
 
@@ -162,7 +158,7 @@ function Sales() {
               <option value="">-- Choose Product --</option>
               {products.map((p) => (
                 <option key={p._id} value={p._id} disabled={p.stock <= 0}>
-                  {p.productName || p.name} ({p.stock > 0 ? `Stock: ${p.stock}` : "Out of Stock"})
+                  {p.productName} ({p.stock > 0 ? `Stock: ${p.stock}` : "Out of Stock"})
                 </option>
               ))}
             </select>
@@ -179,9 +175,7 @@ function Sales() {
               className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="e.g. 2"
               value={form.quantity}
-              onChange={(e) =>
-                setForm({ ...form, quantity: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, quantity: e.target.value })}
               required
             />
           </div>
@@ -195,9 +189,7 @@ function Sales() {
               className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Walk-in Customer"
               value={form.customerName}
-              onChange={(e) =>
-                setForm({ ...form, customerName: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, customerName: e.target.value })}
             />
           </div>
 
@@ -228,25 +220,38 @@ function Sales() {
                   <th className="py-3 px-3">Quantity</th>
                   <th className="py-3 px-3">Total Amount</th>
                   <th className="py-3 px-3">Date</th>
+                  <th className="py-3 px-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                 {sales.map((item) => (
                   <tr key={item._id} className="hover:bg-slate-50">
                     <td className="py-3 px-3 font-medium text-slate-800">
-                      {item.product?.productName || item.product?.name || item.items?.[0]?.product?.productName || "N/A"}
+                      {item.product?.productName || "Product Removed"}
                     </td>
                     <td className="py-3 px-3 text-slate-600">
                       {item.customerName || "Walk-in Customer"}
                     </td>
-                    <td className="py-3 px-3">{item.quantity || item.items?.[0]?.quantity || 1}</td>
+                    <td className="py-3 px-3">{item.quantity}</td>
                     <td className="py-3 px-3 font-bold text-slate-800">
                       ₹{item.totalAmount}
                     </td>
                     <td className="py-3 px-3 text-xs text-slate-400">
-                      {item.createdAt
-                        ? new Date(item.createdAt).toLocaleDateString("en-IN")
-                        : "N/A"}
+                      {item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-IN") : "N/A"}
+                    </td>
+                    <td className="py-3 px-3 text-right space-x-2">
+                      <button
+                        onClick={() => handleDownloadInvoice(item._id)}
+                        className="text-xs text-blue-600 hover:underline font-medium"
+                      >
+                        Invoice
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSale(item._id)}
+                        className="text-xs text-red-600 hover:underline font-medium"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
