@@ -93,63 +93,169 @@ const deleteSale = asyncHandler(async (req, res) => {
 // =====================================================
 // CREATE SALE (FIXED VALIDATIONS & FIELD FALLBACKS)
 // =====================================================
+// =====================================================
+// CREATE SALE
+// =====================================================
 const createSale = asyncHandler(async (req, res) => {
-    let { productId, product, items, quantity, customerName, paymentStatus = "PAID" } = req.body;
-
-    // Handle payload from multiple client formats
-    const targetProductId = productId || product || items?.[0]?.product;
-    const finalQuantity = Number(quantity || items?.[0]?.quantity);
-
-    if (!targetProductId || !finalQuantity || finalQuantity <= 0) {
-        throw new ApiError(400, "Product ID and a valid quantity greater than 0 are required");
-    }
-
-    paymentStatus = String(paymentStatus).toUpperCase();
-
-    const selectedProduct = await Product.findById(targetProductId);
-    if (!selectedProduct) {
-        throw new ApiError(404, "Product not found in database");
-    }
-
-    if (selectedProduct.stock < finalQuantity) {
-        throw new ApiError(400, `Insufficient stock! Only ${selectedProduct.stock} items available.`);
-    }
-
-    // Dynamic price detection fallback (supports sellingPrice or price schema)
-    const unitPrice = Number(selectedProduct.sellingPrice ?? selectedProduct.price ?? 0);
-    const totalAmount = unitPrice * finalQuantity;
-
-    // Reduce stock
-    selectedProduct.stock -= finalQuantity;
-    await selectedProduct.save();
-
-    // Create Sale Record
-    const sale = await Sale.create({
-        product: targetProductId,
-        quantity: finalQuantity,
-        sellingPrice: unitPrice,
-        totalAmount,
-        customerName: customerName?.trim() || "Walk-in Customer",
-        paymentStatus,
-        createdBy: req.user._id,
-    });
-
-    // Create Inventory Log
     try {
-        await Inventory.create({
-            product: targetProductId,
-            type: "OUT",
+        const {
+            productId,
+            product,
+            items,
+            quantity,
+            customerName,
+            paymentStatus = "PAID",
+        } = req.body;
+
+        // ---------------------------------------------
+        // 1. PRODUCT ID
+        // ---------------------------------------------
+        const targetProductId =
+            productId ||
+            product ||
+            items?.[0]?.product;
+
+        if (!targetProductId) {
+            throw new ApiError(
+                400,
+                "Product ID is required"
+            );
+        }
+
+        // ---------------------------------------------
+        // 2. QUANTITY
+        // ---------------------------------------------
+        const finalQuantity = Number(
+            quantity ?? items?.[0]?.quantity
+        );
+
+        if (
+            !Number.isFinite(finalQuantity) ||
+            finalQuantity <= 0
+        ) {
+            throw new ApiError(
+                400,
+                "Quantity must be greater than 0"
+            );
+        }
+
+        // ---------------------------------------------
+        // 3. PAYMENT STATUS
+        // ---------------------------------------------
+        const finalPaymentStatus =
+            String(paymentStatus || "PAID").toUpperCase();
+
+        if (!["PAID", "PENDING"].includes(finalPaymentStatus)) {
+            throw new ApiError(
+                400,
+                "Payment status must be PAID or PENDING"
+            );
+        }
+
+        // ---------------------------------------------
+        // 4. FIND PRODUCT
+        // ---------------------------------------------
+        const selectedProduct =
+            await Product.findById(targetProductId);
+
+        if (!selectedProduct) {
+            throw new ApiError(
+                404,
+                "Product not found in database"
+            );
+        }
+
+        // ---------------------------------------------
+        // 5. CHECK STOCK
+        // ---------------------------------------------
+        const currentStock = Number(selectedProduct.stock || 0);
+
+        if (currentStock < finalQuantity) {
+            throw new ApiError(
+                400,
+                `Insufficient stock! Only ${currentStock} items available.`
+            );
+        }
+
+        // ---------------------------------------------
+        // 6. GET SELLING PRICE
+        // ---------------------------------------------
+        const unitPrice = Number(
+            selectedProduct.sellingPrice ??
+            selectedProduct.price ??
+            0
+        );
+
+        if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+            throw new ApiError(
+                400,
+                "Invalid product selling price"
+            );
+        }
+
+        const totalAmount =
+            unitPrice * finalQuantity;
+
+        // ---------------------------------------------
+        // 7. CREATE SALE FIRST
+        // ---------------------------------------------
+        const sale = await Sale.create({
+            product: selectedProduct._id,
             quantity: finalQuantity,
-            note: "Sold via sales module",
+            sellingPrice: unitPrice,
+            totalAmount,
+            customerName:
+                customerName?.trim() ||
+                "Walk-in Customer",
+            paymentStatus: finalPaymentStatus,
             createdBy: req.user._id,
         });
-    } catch (invErr) {
-        console.error("Inventory log failed (non-blocking):", invErr);
-    }
 
-    return res.status(201).json(
-        new ApiResponse(201, sale, "Sale created successfully")
-    );
+        // ---------------------------------------------
+        // 8. REDUCE STOCK
+        // ---------------------------------------------
+        selectedProduct.stock =
+            currentStock - finalQuantity;
+
+        await selectedProduct.save();
+
+        // ---------------------------------------------
+        // 9. INVENTORY LOG
+        // ---------------------------------------------
+        try {
+            await Inventory.create({
+                product: selectedProduct._id,
+                type: "OUT",
+                quantity: finalQuantity,
+                note: "Sold via sales module",
+                createdBy: req.user._id,
+            });
+        } catch (inventoryError) {
+            console.error(
+                "Inventory log failed:",
+                inventoryError
+            );
+        }
+
+        // ---------------------------------------------
+        // 10. RESPONSE
+        // ---------------------------------------------
+        return res.status(201).json(
+            new ApiResponse(
+                201,
+                sale,
+                "Sale created successfully"
+            )
+        );
+
+    } catch (error) {
+        console.error(
+            "CREATE SALE ERROR:",
+            error
+        );
+
+        throw error;
+    }
 });
 
 // =====================================================
