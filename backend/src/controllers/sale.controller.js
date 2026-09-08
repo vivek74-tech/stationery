@@ -17,7 +17,7 @@ const downloadInvoice = asyncHandler(async (req, res) => {
     const sale = await Sale.findOne({
         _id: id,
         ...(req.user.role === "employee" ? { createdBy: req.user._id } : {}),
-    }).populate("product", "productName sku sellingPrice");
+    }).populate("product", "productName name sku sellingPrice price");
 
     if (!sale) {
         throw new ApiError(404, "Sale record not found");
@@ -45,11 +45,11 @@ const downloadInvoice = asyncHandler(async (req, res) => {
     doc.text(`Payment    : ${sale.paymentStatus}`);
 
     doc.moveDown();
-    // Safety check for deleted product references
-    doc.text(`Product    : ${sale.product?.productName || "Product Removed"}`);
+    // Safety check for deleted product references or naming variations
+    doc.text(`Product    : ${sale.product?.productName || sale.product?.name || "Product Removed"}`);
     doc.text(`SKU        : ${sale.product?.sku || "N/A"}`);
     doc.text(`Quantity   : ${sale.quantity}`);
-    doc.text(`Price      : ₹${sale.sellingPrice}`);
+    doc.text(`Price      : ₹${sale.sellingPrice || sale.product?.sellingPrice || sale.product?.price || 0}`);
 
     doc.moveDown();
     doc.fontSize(14).text(`Total Amount : ₹${sale.totalAmount}`);
@@ -91,40 +91,43 @@ const deleteSale = asyncHandler(async (req, res) => {
 });
 
 // =====================================================
-// CREATE SALE
+// CREATE SALE (FIXED VALIDATIONS & FIELD FALLBACKS)
 // =====================================================
 const createSale = asyncHandler(async (req, res) => {
-    let { productId, product, quantity, customerName, paymentStatus = "PAID" } = req.body;
+    let { productId, product, items, quantity, customerName, paymentStatus = "PAID" } = req.body;
 
-    const targetProductId = productId || product;
-    quantity = Number(quantity);
+    // Handle payload from multiple client formats
+    const targetProductId = productId || product || items?.[0]?.product;
+    const finalQuantity = Number(quantity || items?.[0]?.quantity);
 
-    if (!targetProductId || !quantity || quantity <= 0) {
-        throw new ApiError(400, "Product ID and valid quantity are required");
+    if (!targetProductId || !finalQuantity || finalQuantity <= 0) {
+        throw new ApiError(400, "Product ID and a valid quantity greater than 0 are required");
     }
 
-    paymentStatus = paymentStatus.toUpperCase();
+    paymentStatus = String(paymentStatus).toUpperCase();
 
     const selectedProduct = await Product.findById(targetProductId);
     if (!selectedProduct) {
-        throw new ApiError(404, "Product not found");
+        throw new ApiError(404, "Product not found in database");
     }
 
-    if (selectedProduct.stock < quantity) {
-        throw new ApiError(400, "Insufficient stock available");
+    if (selectedProduct.stock < finalQuantity) {
+        throw new ApiError(400, `Insufficient stock! Only ${selectedProduct.stock} items available.`);
     }
 
-    const totalAmount = selectedProduct.sellingPrice * quantity;
+    // Dynamic price detection fallback (supports sellingPrice or price schema)
+    const unitPrice = Number(selectedProduct.sellingPrice ?? selectedProduct.price ?? 0);
+    const totalAmount = unitPrice * finalQuantity;
 
     // Reduce stock
-    selectedProduct.stock -= quantity;
+    selectedProduct.stock -= finalQuantity;
     await selectedProduct.save();
 
     // Create Sale Record
     const sale = await Sale.create({
         product: targetProductId,
-        quantity,
-        sellingPrice: selectedProduct.sellingPrice,
+        quantity: finalQuantity,
+        sellingPrice: unitPrice,
         totalAmount,
         customerName: customerName?.trim() || "Walk-in Customer",
         paymentStatus,
@@ -132,13 +135,17 @@ const createSale = asyncHandler(async (req, res) => {
     });
 
     // Create Inventory Log
-    await Inventory.create({
-        product: targetProductId,
-        type: "OUT",
-        quantity,
-        note: "Sold via sales module",
-        createdBy: req.user._id,
-    });
+    try {
+        await Inventory.create({
+            product: targetProductId,
+            type: "OUT",
+            quantity: finalQuantity,
+            note: "Sold via sales module",
+            createdBy: req.user._id,
+        });
+    } catch (invErr) {
+        console.error("Inventory log failed (non-blocking):", invErr);
+    }
 
     return res.status(201).json(
         new ApiResponse(201, sale, "Sale created successfully")
@@ -162,7 +169,7 @@ const getAllSales = asyncHandler(async (req, res) => {
     const totalSales = await Sale.countDocuments(filter);
 
     const sales = await Sale.find(filter)
-        .populate("product", "productName sku sellingPrice")
+        .populate("product", "productName name sku sellingPrice price")
         .populate("createdBy", "fullName email role")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -206,7 +213,7 @@ const getSaleById = asyncHandler(async (req, res) => {
         _id: id,
         ...(req.user.role === "employee" ? { createdBy: req.user._id } : {}),
     })
-        .populate("product", "productName sku sellingPrice costPrice")
+        .populate("product", "productName name sku sellingPrice price costPrice")
         .populate("createdBy", "fullName email role");
 
     if (!sale) {
@@ -301,7 +308,7 @@ const getTopSellingProducts = asyncHandler(async (req, res) => {
 
     const populatedData = await Sale.populate(topProducts, {
         path: "_id",
-        select: "productName sku sellingPrice",
+        select: "productName name sku sellingPrice price",
     });
 
     const result = populatedData.map((item) => ({
