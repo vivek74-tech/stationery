@@ -1,30 +1,82 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
-import { getRecentSales } from "../../services/dashboard.service";
+import StatCard from "../../components/dashboard/StatCard";
+import SalesChart from "../../components/dashboard/SalesChart";
+import RecentActivity from "../../components/dashboard/RecentActivity";
 
-function RecentActivity() {
-  const [sales, setSales] = useState([]);
+import { useAuth } from "../../context/AuthContext";
+import { getDashboardStats, getMonthlySales } from "../../services/dashboard.service";
+import { getSales } from "../../services/sale.service";
+
+function EmployeeDashboard() {
+  const { user } = useAuth();
+
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    mySales: 0,
+    lowStock: 0,
+  });
+
+  const [chartData, setChartData] = useState([]);
+  const [recentSales, setRecentSales] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchRecentSales = async () => {
+  const fetchDashboard = async () => {
     try {
       setLoading(true);
 
-      const response = await getRecentSales();
+      const [statsRes, salesRes, recentRes] = await Promise.all([
+        getDashboardStats(),
+        getMonthlySales(),
+        getSales(1, 5, ""), // Top 5 recent sales
+      ]);
 
-      // Flexible unwrapping for API array response
-      const salesList = Array.isArray(response?.data)
-        ? response.data
-        : Array.isArray(response)
-        ? response
+      // Safe Data Unwrapping
+      const statsData = statsRes?.data || statsRes || {};
+      const rawSalesArray = Array.isArray(salesRes?.data)
+        ? salesRes.data
+        : Array.isArray(salesRes)
+        ? salesRes
         : [];
 
-      setSales(salesList);
+      const rawRecentSales =
+        recentRes?.data?.sales ||
+        recentRes?.sales ||
+        recentRes?.data ||
+        [];
+
+      setStats({
+        totalProducts: Number(statsData?.totalProducts ?? 0),
+        mySales: Number(statsData?.mySales ?? 0),
+        lowStock: Number(statsData?.lowStock ?? 0),
+      });
+
+      setRecentSales(Array.isArray(rawRecentSales) ? rawRecentSales : []);
+
+      const months = [
+        "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+      ];
+
+      const formattedChart = rawSalesArray.map((item) => {
+        const monthIndex = Number(item?._id?.month ?? 0);
+        const year = item?._id?.year ?? "";
+
+        return {
+          month:
+            monthIndex >= 1 && monthIndex <= 12
+              ? `${months[monthIndex]} ${year}`
+              : "Unknown",
+          totalSales: Number(item?.totalSales ?? item?.amount ?? 0),
+        };
+      });
+
+      setChartData(formattedChart);
     } catch (error) {
-      console.error("Fetch Recent Sales Error:", error);
+      console.error("Dashboard Load Error:", error);
       toast.error(
-        error.response?.data?.message || "Failed to load recent sales"
+        error?.response?.data?.message || "Failed to load employee dashboard"
       );
     } finally {
       setLoading(false);
@@ -32,106 +84,82 @@ function RecentActivity() {
   };
 
   useEffect(() => {
-    fetchRecentSales();
+    fetchDashboard();
   }, []);
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg p-6">
-        <h2 className="text-xl font-bold mb-4 text-slate-800">
-          Recent Activity
-        </h2>
-        <p className="text-slate-400 text-center py-8 text-sm font-medium animate-pulse">
-          Loading recent sales...
-        </p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center font-medium text-slate-500 animate-pulse">
+          Loading Dashboard Data...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg p-2 sm:p-4">
-      <h2 className="text-xl font-bold mb-4 text-slate-800">
-        Recent Activity
-      </h2>
+    <div className="p-4 sm:p-6 space-y-8">
+      {/* HEADER */}
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+          Employee Dashboard
+        </h1>
+        <p className="text-slate-500 mt-1">
+          Welcome back,{" "}
+          <span className="font-semibold text-blue-600 capitalize">
+            {user?.fullName || user?.name || "Employee"}
+          </span>
+        </p>
+      </div>
 
-      {sales.length === 0 ? (
-        <div className="text-center py-8 text-slate-400 text-sm font-medium">
-          No recent sales available
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 text-slate-500 font-semibold">
-                <th className="py-3 px-3">Product</th>
-                <th className="py-3 px-3">Customer</th>
-                <th className="py-3 px-3">Quantity</th>
-                <th className="py-3 px-3">Amount</th>
-                <th className="py-3 px-3">Payment</th>
-                <th className="py-3 px-3">Date</th>
-              </tr>
-            </thead>
+      {/* STAT CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <StatCard
+          title="Available Products"
+          value={stats.totalProducts}
+          icon="📦"
+          color="bg-blue-600"
+        />
 
-            <tbody className="divide-y divide-slate-100">
-              {sales.map((sale) => {
-                // Support single product & multi-item schemas
-                const productName =
-                  sale.product?.productName ||
-                  sale.items?.[0]?.product?.productName ||
-                  "Product Item";
+        <StatCard
+          title="My Sales"
+          value={stats.mySales}
+          icon="🛒"
+          color="bg-purple-600"
+        />
 
-                const quantity =
-                  sale.quantity ||
-                  sale.items?.reduce((acc, curr) => acc + (curr.quantity || 0), 0) ||
-                  1;
+        <StatCard
+          title="Low Stock Warning"
+          value={stats.lowStock}
+          icon="⚠️"
+          color="bg-orange-500"
+        />
+      </div>
 
-                return (
-                  <tr
-                    key={sale._id}
-                    className="hover:bg-slate-50/80 transition-colors"
-                  >
-                    <td className="py-3 px-3 font-medium text-slate-800">
-                      {productName}
-                    </td>
+      {/* MONTHLY SALES CHART */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-800 mb-4">
+          My Monthly Sales
+        </h2>
 
-                    <td className="py-3 px-3 text-slate-600">
-                      {sale.customerName || "Walk-in Customer"}
-                    </td>
+        {chartData.length > 0 ? (
+          <SalesChart data={chartData} />
+        ) : (
+          <div className="flex items-center justify-center h-64 text-slate-400 text-sm font-medium">
+            No sales data available
+          </div>
+        )}
+      </div>
 
-                    <td className="py-3 px-3 text-slate-600">
-                      {quantity}
-                    </td>
-
-                    <td className="py-3 px-3 font-semibold text-slate-800">
-                      ₹{sale.totalAmount ?? 0}
-                    </td>
-
-                    <td className="py-3 px-3">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          sale.paymentStatus === "PAID"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {sale.paymentStatus || "PAID"}
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-3 text-slate-400 text-xs">
-                      {sale.createdAt
-                        ? new Date(sale.createdAt).toLocaleDateString("en-IN")
-                        : "N/A"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* RECENT SALES */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-800 mb-4">
+          My Recent Sales
+        </h2>
+        <RecentActivity sales={recentSales} />
+      </div>
     </div>
   );
 }
 
-export default RecentActivity;
+export default EmployeeDashboard;
