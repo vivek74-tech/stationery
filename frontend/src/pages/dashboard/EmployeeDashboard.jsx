@@ -24,9 +24,7 @@ function EmployeeDashboard() {
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // =====================================================
   // FETCH DASHBOARD DATA
-  // =====================================================
   const fetchDashboard = async () => {
     try {
       setLoading(true);
@@ -36,7 +34,7 @@ function EmployeeDashboard() {
         getMonthlySales(),
       ]);
 
-      // Safe Data Unwrapping (Supports both Service return types)
+      // Safe Data Unwrapping
       const statsData = statsRes?.data || statsRes || {};
       const rawSalesArray = Array.isArray(salesRes?.data)
         ? salesRes.data
@@ -150,11 +148,8 @@ function EmployeeDashboard() {
         )}
       </div>
 
-      {/* RECENT SALES */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-        <h2 className="text-lg font-bold text-slate-800 mb-4">
-          My Recent Sales
-        </h2>
+      {/* RECENT SALES (Duplicate H2 removed to match RecentActivity component UI) */}
+      <div className="bg-white p-2 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
         <RecentActivity />
       </div>
     </div>
