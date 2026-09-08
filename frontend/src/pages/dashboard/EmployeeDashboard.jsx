@@ -17,10 +17,7 @@ function EmployeeDashboard() {
 
   const [stats, setStats] = useState({
     totalProducts: 0,
-    totalCategories: 0,
-    totalSuppliers: 0,
     mySales: 0,
-    myRevenue: 0,
     lowStock: 0,
   });
 
@@ -39,29 +36,41 @@ function EmployeeDashboard() {
         getMonthlySales(),
       ]);
 
-      // Debugging ke liye browser console check karein
+      // Debugging
       console.log("Stats API Response:", statsRes);
       console.log("Sales API Response:", salesRes);
 
-      // Safe extraction for nested response structures
+      // =====================================================
+      // EXTRACT API DATA
+      // =====================================================
+
       const statsData = statsRes?.data?.data || statsRes?.data || {};
       const salesData = salesRes?.data?.data || salesRes?.data || [];
 
-      // ================================================
-      // EMPLOYEE STATS WITH FALLBACK KEYS
-      // ================================================
+      console.log("Employee Stats Data:", statsData);
+      console.log("Employee Sales Data:", salesData);
+
+      // =====================================================
+      // EMPLOYEE STATS
+      // Backend employee response:
+      //
+      // {
+      //   totalProducts,
+      //   mySales,
+      //   lowStock
+      // }
+      // =====================================================
+
       setStats({
-        totalProducts: statsData?.totalProducts ?? statsData?.products ?? 0,
-        totalCategories: statsData?.totalCategories ?? statsData?.categories ?? 0,
-        totalSuppliers: statsData?.totalSuppliers ?? statsData?.suppliers ?? 0,
-        mySales: statsData?.mySales ?? statsData?.totalSales ?? statsData?.sales ?? 0,
-        myRevenue: statsData?.myRevenue ?? statsData?.totalRevenue ?? statsData?.revenue ?? 0,
-        lowStock: statsData?.lowStock ?? statsData?.lowStockItems ?? 0,
+        totalProducts: statsData?.totalProducts ?? 0,
+        mySales: statsData?.mySales ?? 0,
+        lowStock: statsData?.lowStock ?? 0,
       });
 
-      // ================================================
+      // =====================================================
       // MONTHLY SALES CHART
-      // ================================================
+      // =====================================================
+
       const months = [
         "",
         "Jan",
@@ -80,11 +89,16 @@ function EmployeeDashboard() {
 
       const formattedChart = Array.isArray(salesData)
         ? salesData.map((item) => {
-            const mIndex = item?._id?.month || 0;
+            const monthIndex = item?._id?.month || 0;
             const year = item?._id?.year || "";
+
             return {
-              month: mIndex > 0 && mIndex <= 12 ? `${months[mIndex]} ${year}` : "Unknown",
-              totalSales: item?.totalSales || item?.amount || 0,
+              month:
+                monthIndex > 0 && monthIndex <= 12
+                  ? `${months[monthIndex]} ${year}`
+                  : "Unknown",
+
+              totalSales: item?.totalSales ?? 0,
             };
           })
         : [];
@@ -92,17 +106,27 @@ function EmployeeDashboard() {
       setChartData(formattedChart);
     } catch (error) {
       console.error("Dashboard Load Error:", error);
+
       toast.error(
-        error?.response?.data?.message || "Failed to load employee dashboard"
+        error?.response?.data?.message ||
+          "Failed to load employee dashboard"
       );
     } finally {
       setLoading(false);
     }
   };
 
+  // =====================================================
+  // LOAD DASHBOARD
+  // =====================================================
+
   useEffect(() => {
     fetchDashboard();
   }, []);
+
+  // =====================================================
+  // LOADING
+  // =====================================================
 
   if (loading) {
     return (
@@ -114,13 +138,22 @@ function EmployeeDashboard() {
     );
   }
 
+  // =====================================================
+  // UI
+  // =====================================================
+
   return (
     <div className="p-4 sm:p-6 space-y-8">
-      {/* HEADER */}
+
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
           Employee Dashboard
         </h1>
+
         <p className="text-slate-500 mt-1">
           Welcome back,{" "}
           <span className="font-semibold text-blue-600 capitalize">
@@ -129,8 +162,14 @@ function EmployeeDashboard() {
         </p>
       </div>
 
-      {/* EMPLOYEE STATS GRID */}
+      {/* =====================================================
+          EMPLOYEE STATS
+      ===================================================== */}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        {/* PRODUCTS */}
+
         <StatCard
           title="Available Products"
           value={stats.totalProducts}
@@ -138,19 +177,7 @@ function EmployeeDashboard() {
           color="bg-blue-600"
         />
 
-        <StatCard
-          title="Categories"
-          value={stats.totalCategories}
-          icon="📁"
-          color="bg-emerald-600"
-        />
-
-        <StatCard
-          title="Suppliers"
-          value={stats.totalSuppliers}
-          icon="🚚"
-          color="bg-amber-500"
-        />
+        {/* MY SALES */}
 
         <StatCard
           title="My Sales"
@@ -159,12 +186,7 @@ function EmployeeDashboard() {
           color="bg-purple-600"
         />
 
-        <StatCard
-          title="My Revenue"
-          value={`₹${(Number(stats.myRevenue) || 0).toLocaleString("en-IN")}`}
-          icon="💰"
-          color="bg-red-600"
-        />
+        {/* LOW STOCK */}
 
         <StatCard
           title="Low Stock Warning"
@@ -172,23 +194,43 @@ function EmployeeDashboard() {
           icon="⚠️"
           color="bg-orange-500"
         />
+
       </div>
 
-      {/* MONTHLY SALES CHART */}
+      {/* =====================================================
+          MONTHLY SALES CHART
+      ===================================================== */}
+
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+
         <h2 className="text-lg font-bold text-slate-800 mb-4">
           My Monthly Sales
         </h2>
-        <SalesChart data={chartData} />
+
+        {chartData.length > 0 ? (
+          <SalesChart data={chartData} />
+        ) : (
+          <div className="flex items-center justify-center h-64 text-slate-500">
+            No sales data available
+          </div>
+        )}
+
       </div>
 
-      {/* RECENT ACTIVITY */}
+      {/* =====================================================
+          RECENT SALES
+      ===================================================== */}
+
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+
         <h2 className="text-lg font-bold text-slate-800 mb-4">
           My Recent Sales
         </h2>
+
         <RecentActivity />
+
       </div>
+
     </div>
   );
 }
