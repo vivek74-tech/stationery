@@ -74,7 +74,7 @@ function Sidebar() {
 
   return (
     <>
-      {/* Mobile Top Header */}
+      {/* 1. Mobile Top Header */}
       <div className="lg:hidden sticky top-0 left-0 right-0 z-30 bg-slate-900 text-white px-4 py-3 flex items-center justify-between border-b border-slate-800 shadow-md">
         <div className="flex items-center gap-3">
           <button
@@ -92,7 +92,7 @@ function Sidebar() {
         </div>
       </div>
 
-      {/* Backdrop Overlay */}
+      {/* 2. Backdrop Overlay */}
       {isMobileOpen && (
         <div
           className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 lg:hidden transition-opacity"
@@ -100,7 +100,7 @@ function Sidebar() {
         />
       )}
 
-      {/* Sidebar Drawer */}
+      {/* 3. Sidebar Drawer */}
       <aside
         className={`fixed lg:sticky top-0 left-0 h-screen bg-slate-900 text-white shadow-2xl z-50 flex flex-col justify-between transition-transform duration-300 ease-in-out border-r border-slate-800
           ${
@@ -153,7 +153,7 @@ function Sidebar() {
             </div>
           </div>
 
-          {/* Nav Items */}
+          {/* Nav Links */}
           <nav className="p-3 space-y-1 mt-2">
             {filteredMenus.map((menu) => {
               const Icon = menu.icon;
@@ -198,7 +198,7 @@ function Sidebar() {
           </nav>
         </div>
 
-        {/* Desktop Collapse / Expand Button */}
+        {/* Desktop Collapse Button */}
         <div className="p-3 border-t border-slate-800 hidden lg:block">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
