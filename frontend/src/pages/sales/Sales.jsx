@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { createSale, getSales, downloadInvoice, deleteSale } from "../services/sale.service";
-import { getProducts } from "../services/product.service";
+import { createSale, getSales, downloadInvoice, deleteSale } from "../../services/sale.service";
+import { getProducts } from "../../services/product.service";
 
 function Sales() {
   const [sales, setSales] = useState([]);
@@ -26,15 +26,18 @@ function Sales() {
         getProducts(1, 100, ""),
       ]);
 
+      console.log("PRODUCT RESPONSE:", productsRes);
+      console.log("PRODUCT DATA:", productsRes?.data);
+
       const salesList = salesRes?.data?.sales || [];
-      const productsList = productsRes?.data?.products || [];
+      const productsList = productsRes?.data?.data?.products || [];
 
       setSales(Array.isArray(salesList) ? salesList : []);
       setProducts(Array.isArray(productsList) ? productsList : []);
     } catch (error) {
       console.error("Sales Fetch Error:", error);
       toast.error(error?.response?.data?.message || "Failed to load sales data");
-    } fontFinally: {
+    } finally {
       setLoading(false);
     }
   };

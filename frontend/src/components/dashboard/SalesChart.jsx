@@ -9,11 +9,7 @@ import {
 } from "recharts";
 
 function SalesChart({ data = [] }) {
-  console.log("SalesChart data =", data);
-
-  const safeData = Array.isArray(data)
-    ? data
-    : [];
+  const safeData = Array.isArray(data) ? data : [];
 
   if (safeData.length === 0) {
     return (
@@ -25,10 +21,7 @@ function SalesChart({ data = [] }) {
 
   return (
     <div className="w-full h-[350px]">
-      <ResponsiveContainer
-        width="100%"
-        height="100%"
-      >
+      <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={safeData}
           margin={{
@@ -38,23 +31,31 @@ function SalesChart({ data = [] }) {
             bottom: 10,
           }}
         >
-          <CartesianGrid
-            strokeDasharray="3 3"
-          />
+          <CartesianGrid strokeDasharray="3 3" />
 
           <XAxis
             dataKey="month"
+            tick={{ fontSize: 12 }}
           />
 
-          <YAxis />
+          <YAxis
+            allowDecimals={false}
+            tick={{ fontSize: 12 }}
+          />
 
-          <Tooltip />
+          <Tooltip
+            formatter={(value) => [
+              Number(value).toLocaleString("en-IN"),
+              "Sales",
+            ]}
+          />
 
           <Line
             type="monotone"
             dataKey="totalSales"
             strokeWidth={3}
             dot={{ r: 4 }}
+            activeDot={{ r: 6 }}
           />
         </LineChart>
       </ResponsiveContainer>

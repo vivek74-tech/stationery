@@ -11,24 +11,30 @@ function App() {
     location.pathname === "/login" ||
     location.pathname === "/register";
 
+  // =====================================================
+  // AUTH PAGES
+  // =====================================================
+
+  if (isAuthPage) {
+    return <AppRoutes />;
+  }
+
+  // =====================================================
+  // MAIN APPLICATION
+  // =====================================================
+
   return (
-    <>
-      {isAuthPage ? (
-        <AppRoutes />
-      ) : (
-        <div className="flex">
-          <Sidebar />
+    <div className="flex min-h-screen">
+      <Sidebar />
 
-          <div className="flex-1 bg-gray-100 min-h-screen">
-            <Navbar />
+      <div className="flex-1 min-h-screen bg-gray-100">
+        <Navbar />
 
-            <div className="p-6">
-              <AppRoutes />
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+        <main className="p-6">
+          <AppRoutes />
+        </main>
+      </div>
+    </div>
   );
 }
 

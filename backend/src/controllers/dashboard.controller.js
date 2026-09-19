@@ -180,7 +180,6 @@ const getRecentSales = asyncHandler(async (req, res) => {
 
   const sales = await Sale.find(filter)
     .populate("product", "productName sku price")
-    .populate("items.product", "productName sku price")
     .populate("createdBy", "fullName name email role")
     .sort({ createdAt: -1 })
     .limit(5);

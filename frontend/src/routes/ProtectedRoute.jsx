@@ -30,26 +30,14 @@ function ProtectedRoute({
   // =====================================================
 
   if (!isAuthenticated || !user) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-      />
-    );
+    return <Navigate to="/login" replace />;
   }
 
   // =====================================================
   // NORMALIZE ROLE
   // =====================================================
 
-  const role = user?.role
-    ?.toLowerCase()
-    ?.trim();
-
-  console.log("ProtectedRoute:");
-  console.log("User:", user);
-  console.log("Role:", role);
-  console.log("Allowed Roles:", allowedRoles);
+  const role = user?.role?.toLowerCase()?.trim();
 
   // =====================================================
   // ROLE CHECK
@@ -59,13 +47,12 @@ function ProtectedRoute({
     allowedRoles.length > 0 &&
     !allowedRoles.includes(role)
   ) {
-    return (
-      <Navigate
-        to="/"
-        replace
-      />
-    );
+    return <Navigate to="/" replace />;
   }
+
+  // =====================================================
+  // AUTHORIZED
+  // =====================================================
 
   return children;
 }

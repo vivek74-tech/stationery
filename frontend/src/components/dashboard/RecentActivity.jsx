@@ -1,41 +1,57 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+
 import { getRecentSales } from "../../services/dashboard.service";
 
 function RecentActivity() {
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const fetchRecentSales = async () => {
-    try {
-      setLoading(true);
-      const response = await getRecentSales();
-
-      // Deep data unwrapping logic (fixes nested data issue)
-      const salesList =
-        response?.data?.sales ||
-        response?.data?.recentSales ||
-        (Array.isArray(response?.data) ? response.data : null) ||
-        (Array.isArray(response) ? response : []);
-
-      setSales(Array.isArray(salesList) ? salesList : []);
-    } catch (error) {
-      console.error("Fetch Recent Sales Error:", error);
-      toast.error(
-        error.response?.data?.message || "Failed to load recent sales"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  
 
   useEffect(() => {
-    fetchRecentSales();
+    let mounted = true;
+
+    const loadRecentSales = async () => {
+      try {
+        setLoading(true);
+
+        const response = await getRecentSales();
+
+        const salesList =
+          response?.data?.sales ||
+          response?.data?.recentSales ||
+          (Array.isArray(response?.data) ? response.data : null) ||
+          (Array.isArray(response) ? response : []);
+
+        if (mounted) {
+          setSales(Array.isArray(salesList) ? salesList : []);
+        }
+      } catch (error) {
+        console.error("Recent Sales Error:", error);
+
+        if (mounted) {
+          toast.error(
+            error?.response?.data?.message ||
+              "Failed to load recent sales"
+          );
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadRecentSales();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg p-6">
+      <div className="p-6">
         <p className="text-slate-400 text-center py-8 text-sm font-medium animate-pulse">
           Loading recent sales...
         </p>
@@ -44,7 +60,7 @@ function RecentActivity() {
   }
 
   return (
-    <div className="bg-white rounded-lg p-2 sm:p-4">
+    <div className="p-2 sm:p-4">
       {sales.length === 0 ? (
         <div className="text-center py-8 text-slate-400 text-sm font-medium">
           No recent sales available
@@ -66,27 +82,42 @@ function RecentActivity() {
             <tbody className="divide-y divide-slate-100">
               {sales.map((sale) => {
                 const productName =
-                  sale.product?.productName ||
-                  sale.product?.name ||
-                  sale.items?.[0]?.product?.productName ||
+                  sale?.product?.productName ||
+                  sale?.product?.name ||
+                  sale?.items?.[0]?.product?.productName ||
                   "Product Item";
 
                 const quantity =
-                  sale.quantity ||
-                  sale.items?.reduce((acc, curr) => acc + (curr.quantity || 0), 0) ||
+                  Number(sale?.quantity) ||
+                  sale?.items?.reduce(
+                    (total, item) =>
+                      total + Number(item?.quantity || 0),
+                    0
+                  ) ||
                   1;
+
+                const amount =
+                  Number(
+                    sale?.totalAmount ??
+                      sale?.sellingPrice ??
+                      sale?.total ??
+                      0
+                  );
+
+                const paymentStatus =
+                  sale?.paymentStatus || "PAID";
 
                 return (
                   <tr
-                    key={sale._id}
-                    className="hover:bg-slate-50/80 transition-colors"
+                    key={sale?._id}
+                    className="hover:bg-slate-50 transition-colors"
                   >
                     <td className="py-3 px-3 font-medium text-slate-800">
                       {productName}
                     </td>
 
                     <td className="py-3 px-3 text-slate-600">
-                      {sale.customerName || "Walk-in Customer"}
+                      {sale?.customerName || "Walk-in Customer"}
                     </td>
 
                     <td className="py-3 px-3 text-slate-600">
@@ -94,24 +125,26 @@ function RecentActivity() {
                     </td>
 
                     <td className="py-3 px-3 font-semibold text-slate-800">
-                      ₹{sale.totalAmount ?? 0}
+                      ₹{amount.toLocaleString("en-IN")}
                     </td>
 
                     <td className="py-3 px-3">
                       <span
                         className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          sale.paymentStatus === "PAID"
+                          paymentStatus === "PAID"
                             ? "bg-emerald-100 text-emerald-700"
                             : "bg-amber-100 text-amber-700"
                         }`}
                       >
-                        {sale.paymentStatus || "PAID"}
+                        {paymentStatus}
                       </span>
                     </td>
 
                     <td className="py-3 px-3 text-slate-400 text-xs">
-                      {sale.createdAt
-                        ? new Date(sale.createdAt).toLocaleDateString("en-IN")
+                      {sale?.createdAt
+                        ? new Date(
+                            sale.createdAt
+                          ).toLocaleDateString("en-IN")
                         : "N/A"}
                     </td>
                   </tr>
