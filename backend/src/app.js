@@ -20,7 +20,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://stationery-r217.onrender.com/",
+    origin: "https://stationery-r217.onrender.com",
     credentials: true,
   })
 );
